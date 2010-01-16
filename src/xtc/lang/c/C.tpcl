@@ -1,0 +1,2816 @@
+(** AST structure for grammar xtc.lang.C. *)
+module xtc.lang.c.C;
+
+mltype translation_unit = TranslationUnit of external_declaration list ;
+
+mltype external_declaration =
+  | Declaration of string opt * declaration_specifiers *
+    initialized_declarator_list opt
+  | FunctionDefinition of string opt * declaration_specifiers opt *
+    declarator * declaration_list opt * statement
+  | AssemblyDefinition of simple_assembly_expression
+  | EmptyDefinition ;
+
+mltype declaration_list = DeclarationList of external_declaration list ;
+
+mltype declaration_specifiers = DeclarationSpecifiers of
+  declaration_specifier list ;
+
+mltype declaration_specifier =
+  | AutoSpecifier
+  | ExternSpecifier
+  | RegisterSpecifier
+  | StaticSpecifier
+  | TypedefSpecifier
+  | EnumerationTypeDefinition of attribute_specifier_list opt * string opt *
+    enumerator_list * attribute_specifier_list opt
+  | EnumerationTypeReference of attribute_specifier_list opt * string
+  | StructureTypeDefinition of attribute_specifier_list opt * string opt *
+    structure_declaration_list * attribute_specifier_list opt
+  | StructureTypeReference of attribute_specifier_list opt * string
+  | UnionTypeDefinition of attribute_specifier_list opt * string opt *
+    structure_declaration_list * attribute_specifier_list opt
+  | UnionTypeReference of attribute_specifier_list opt * string
+  | Complex of string
+  | Double
+  | Float
+  | Long
+  | Int
+  | Short
+  | Char
+  | Bool
+  | Unsigned
+  | Signed of string
+  | TypedefName of string
+  | TypeofSpecifier of [
+      | `SomeTypeName of type_name
+      | `SomeExpression of expression
+    ]
+  | VoidTypeSpecifier
+  | VarArgListSpecifier
+  | VolatileQualifier of string
+  | ConstantQualifier of string
+  | RestrictQualifier of string
+  | FunctionSpecifier of string
+  | AttributeSpecifier of attribute_list opt ;
+
+mltype initialized_declarator_list = InitializedDeclaratorList of
+  initialized_declarator list ;
+
+mltype initialized_declarator = InitializedDeclarator of
+  attribute_specifier_list opt * declarator *
+  simple_assembly_expression opt * attribute_specifier_list opt *
+  expression opt ;
+
+mltype enumerator_list = EnumeratorList of enumerator list ;
+
+mltype enumerator = Enumerator of string * expression opt ;
+
+mltype structure_declaration_list = StructureDeclarationList of
+  structure_declaration list ;
+
+mltype structure_declaration = StructureDeclaration of string opt *
+  specifier_qualifier_list * structure_declarator_list ;
+
+mltype specifier_qualifier_list = SpecifierQualifierList of
+  declaration_specifier list ;
+
+mltype structure_declarator_list = StructureDeclaratorList of declarator list ;
+
+mltype declarator =
+  | PointerDeclarator of pointer * declarator
+  | FunctionDeclarator of declarator * [
+      | `SomeParameterTypeList of parameter_type_list
+      | `SomeIdentifierList of identifier_list
+    ] opt
+  | ArrayDeclarator of declarator * array_qualifier_list * [
+      | `SomeExpression of expression
+      | `SomeVariableLength of variable_length
+    ] opt
+  | AttributedDeclarator of attribute_specifier_list opt * declarator *
+    attribute_specifier_list opt
+  | SimpleDeclarator of string
+  | BitField of attribute_specifier_list opt * declarator opt * expression *
+    attribute_specifier_list opt ;
+
+mltype pointer = Pointer of type_qualifier_list * pointer opt ;
+
+mltype type_qualifier_list = TypeQualifierList of declaration_specifier list ;
+
+mltype variable_length = VariableLength ;
+
+mltype parameter_type_list = ParameterTypeList of parameter_list * string opt ;
+
+mltype parameter_list = ParameterList of parameter_declaration list ;
+
+mltype parameter_declaration = ParameterDeclaration of
+  declaration_specifiers * [
+    | `SomeDeclarator of declarator
+    | `SomeAbstractDeclarator of abstract_declarator
+  ] opt * attribute_specifier_list opt ;
+
+mltype direct_abstract_declarator =
+  | DirectAbstractDeclarator of direct_abstract_declarator * string * [
+      | `SomeExpression of expression
+      | `SomeVariableLength of variable_length
+      | `SomeParameterTypeList of parameter_type_list
+    ] opt
+  | AttributedAbstractDeclarator of attribute_specifier_list opt *
+    abstract_declarator ;
+
+mltype abstract_declarator = AbstractDeclarator of pointer opt *
+  direct_abstract_declarator ;
+
+mltype identifier_list = IdentifierList of string list ;
+
+mltype array_qualifier_list = ArrayQualifierList of declaration_specifier list ;
+
+mltype expression =
+  | CommaExpression of expression * expression
+  | AssignmentExpression of expression * string * expression
+  | ConditionalExpression of expression * expression opt * expression
+  | LogicalOrExpression of expression * expression
+  | LogicalAndExpression of expression * expression
+  | BitwiseOrExpression of expression * expression
+  | BitwiseXorExpression of expression * expression
+  | BitwiseAndExpression of expression * expression
+  | EqualityExpression of expression * string * expression
+  | RelationalExpression of expression * string * expression
+  | ShiftExpression of expression * string * expression
+  | AdditiveExpression of expression * string * expression
+  | MultiplicativeExpression of expression * string * expression
+  | CastExpression of type_name * expression
+  | SizeofExpression of [
+      | `SomeExpression of expression
+      | `SomeTypeName of type_name
+    ]
+  | AlignofExpression of [
+      | `SomeExpression of expression
+      | `SomeTypeName of type_name
+    ]
+  | UnaryMinusExpression of expression
+  | UnaryPlusExpression of expression
+  | LogicalNegationExpression of expression
+  | BitwiseNegationExpression of expression
+  | AddressExpression of expression
+  | LabelAddressExpression of string
+  | IndirectionExpression of expression
+  | PreincrementExpression of expression
+  | PredecrementExpression of expression
+  | ExtensionExpression of expression
+  | SubscriptExpression of expression * expression
+  | DirectComponentSelection of expression * string
+  | IndirectComponentSelection of expression * string
+  | FunctionCall of expression * expression_list opt
+  | PostincrementExpression of expression
+  | PostdecrementExpression of expression
+  | CompoundLiteral of type_name * expression
+  | FloatingConstant of string
+  | IntegerConstant of string
+  | CharacterConstant of string
+  | StringConstant of string list
+  | PrimaryIdentifier of string
+  | StatementAsExpression of statement
+  | VariableArgumentAccess of expression * type_name
+  | OffsetofExpression of type_name * expression
+  | InitializerList of initializer_list_entry list ;
+
+mltype initializer_list_entry = InitializerListEntry of designation opt *
+  expression ;
+
+mltype designation =
+  | Designation of designator list
+  | ObsoleteArrayDesignation of string * expression * expression var
+  | ObsoleteFieldDesignation of string ;
+
+mltype designator = Designator of string * expression * expression var ;
+
+mltype type_name = TypeName of specifier_qualifier_list * 
+  abstract_declarator opt ;
+
+mltype attribute_specifier_list = AttributeSpecifierList of
+  declaration_specifier list ;
+
+mltype attribute_list = AttributeList of attribute_list_entry list ;
+
+mltype attribute_list_entry = AttributeListEntry of string *
+  expression_list opt ;
+
+mltype statement =
+  | ExpressionStatement of expression
+  | CompoundStatement of [
+      | `SomeExternalDeclaration of external_declaration
+      | `SomeStatement of statement
+      | `SomeLocalLabelDeclaration of local_label_declaration
+    ] list
+  | IfElseStatement of expression * statement * statement
+  | IfStatement of expression * statement
+  | WhileStatement of expression * statement
+  | DoStatement of statement * expression
+  | ForStatement of initial_clause * expression opt * expression opt *
+    statement
+  | SwitchStatement of expression * statement
+  | LabeledStatement of label * statement opt
+  | BreakStatement
+  | ContinueStatement
+  | ReturnStatement of expression opt
+  | GotoStatement of string opt * expression
+  | AssemblyStatement of declaration_specifier opt * assembly_argument *
+    string
+  | EmptyStatement ;
+
+mltype label =
+  | NamedLabel of string * attribute_specifier_list opt
+  | CaseLabel of expression * expression var
+  | DefaultLabel ;
+
+mltype local_label_declaration = LocalLabelDeclaration of string list ;
+
+mltype initial_clause = [
+  | `SomeExternalDeclaration of external_declaration
+  | `SomeExpression of expression
+];
+
+mltype expression_list = ExpressionList of expression list ;
+
+mltype simple_assembly_expression = SimpleAssemblyExpression of expression ;
+
+mltype assembly_argument = AssemblyArgument of expression *
+  assembly_operands var * assembly_operands var * assembly_clobbers var ;
+
+mltype assembly_operands = AssemblyOperands of assembly_operand list ;
+
+mltype assembly_operand = AssemblyOperand of string opt * expression *
+  expression ;
+
+mltype assembly_clobbers = AssemblyClobbers of expression list ;
+
+(****************************** Type and attribute ****************************)
+
+(** The type of compile time values. *)
+mltype valueType = IValue of int | FValue of float64 | SValue of string 
+                   | LValue of valueType list;
+                   
+(** Type of variable array length *)
+mltype vLength   = Unknown | Known;
+
+(** Array size type.*)
+mltype arraySize = Incomplete | VarLength of vLength | Fixed of int; 
+
+(** Gcc attributes.*)
+mltype gcc_attribute = {att_name: string, att_value: valueType};
+
+(** The attribute declarations. *)
+attribute qualifiers: qualifier list;
+attribute storage: storageClass;
+attribute fSpec: functionSpecifier;
+attribute value: valueType;
+attribute implicit: bool;
+attribute initialised: bool;
+attribute position: Node 'a;
+attribute old_style: bool;
+attribute var_args: bool;
+attribute in_top: bool;
+attribute gcc_attributes: gcc_attribute list;
+
+(** The raw type definition. *)
+mltype raw_type = 
+  VoidT | CharT | UCharT | SCharT | BoolT |
+  ShortT | UShortT | UIntT | IntT | ULongT | LongT | ULongLongT | 
+  DoubleT | FloatT | LongDoubleT | LongLongT | PointerT of type | 
+  FloatComplexT | DoubleComplexT | LongDoubleComplexT | ComplexT |
+  ArrayT of type * arraySize | BitfieldT of type * int |  
+  StructT of string * int * type list | UnionT of string * int * type list | 
+  LabelT of string | FunctionT of type * type list | 
+  MemberT of string * type | ListT of type list | VarArgT | WideCharT |
+  EnumeratorT of string * type * int | EnumT of string * int * type list ;
+
+(* Equality declaration. *) 
+equality raw_type = StructT(s,i,_) | UnionT(s,i,_) | MemberT(s,_) | 
+                    FunctionT(t,_) ;
+
+(** Variable declarations for types used often. *)
+mlvalue voidt = {bottom with type = VoidT};
+
+(** Qualifier definition.*)
+mltype qualifier = ConstQ | VolatileQ | RestrictQ ;
+
+(** FunctionSpecifier definition.*)
+mltype functionSpecifier = InlineF ;
+
+(** Storage class definition.*)
+mltype storageClass = ExternS | RegisterS | StaticS | TypedefS | AutoS;
+
+mltype label_record = {label_name: string, label_position: Node 'a};
+
+(** Scope declaration. *)
+scope
+    FunctionDeclarator(SimpleDeclarator(id), params) when 
+      is_not_bottom (ancestor (FunctionDefinition _)) &&
+      is_bottom (ancestor (ParameterTypeList _)) ->
+        Scope(Named(SimpleName(id)), [params])
+ 
+  | FunctionDefinition(_, _, decl, defs, cs) ->
+      Scope(Named(SimpleName(get_id_declarator decl)), [defs, cs])
+ 
+  | FunctionDeclarator(decl,params) ->  
+      Scope(Temporary(get_id_declarator decl),[params])
+
+  | ForStatement(Declaration _ as a,b,c,d)
+      -> Scope(Anonymous("for"), [a, b, c, d])
+ 
+  | ForStatement(_, b, c, d)         -> Scope(Anonymous("for"), [b, c, d])
+
+  | CompoundStatement _       as cs -> Scope(Anonymous("block"), [cs]) ;
+  
+(** Namespace declaration. *)
+namespace 
+  ordinary : type = 
+  | PrimaryIdentifier(s)                    -> SimpleName( s )
+  | SimpleDeclarator(s)                     -> SimpleName( s )
+  | PointerDeclarator(_,b)                  -> SimpleName( get_id_declarator b )
+  | ArrayDeclarator(a,_,_)                  -> SimpleName( get_id_declarator a )
+  | FunctionDeclarator(a,_)                 -> SimpleName( get_id_declarator a ) 
+  | Enumerator(s,_)                         -> SimpleName( s ) 
+  | TypedefName(s)                          -> SimpleName( s ) and
+
+  label : type = 
+  | LabeledStatement(NamedLabel(s, _), _)   -> SimpleName(s) 
+  | NamedLabel(s, _)                        -> SimpleName(s) 
+  | LabelAddressExpression(s)               -> SimpleName(s) 
+  | DefaultLabel _                          -> SimpleName("default") 
+  | GotoStatement(_,PrimaryIdentifier(s))   -> SimpleName(s) and 
+  
+  tag   : type = 
+  | StructureTypeReference(_, s) | UnionTypeReference(_,s) -> SimpleName(s) 
+  | EnumerationTypeDefinition(_,s,_,_) -> SimpleName( s ) 
+  | EnumerationTypeReference(_, s) -> SimpleName(s)      and
+  
+  member : type = 
+  | AttributedDeclarator(_,b,_)             -> SimpleName( get_id_declarator b ) 
+  | IndirectComponentSelection(_,s)         -> SimpleName(s) ; 
+  
+(** Reduce a list of declaration specifiers to a type. *)
+mlvalue extractType = reduce to singleton "type" with
+    [Unsigned _, Long _, Long _, Int _] -> {bottom with type = ULongLongT}
+  | [Unsigned _, Long _, Long _]        -> {bottom with type = ULongLongT}
+  | [Signed _, Long _, Long _, Int _]   -> {bottom with type = LongLongT} 
+  | [Signed _, Long _, Long _]          -> {bottom with type = LongLongT}
+  | [Unsigned _, Long _, Int _]         -> {bottom with type = ULongT}
+  | [Signed _, Long _, Int _]           -> {bottom with type = LongT}
+  | [Signed _, Short _, Int _]          -> {bottom with type = ShortT}
+  | [Unsigned _, Short _, Int _]        -> {bottom with type = UShortT}
+  | [Long _, Double _, Complex _]       -> {bottom with type = LongDoubleComplexT} 
+  | [Long _, Long _, Int _]             -> {bottom with type = LongLongT} 
+  | [Unsigned _, Long _ ]               -> {bottom with type = ULongT}
+  | [Signed _, Short _]                 -> {bottom with type = ShortT}
+  | [Short _, Int _]                    -> {bottom with type = ShortT}
+  | [Unsigned _, Short _]               -> {bottom with type = UShortT}
+  | [Signed _, Char _]                  -> {bottom with type = SCharT}
+  | [Unsigned _, Char _]                -> {bottom with type = UCharT}
+  | [Float _, Complex _]                -> {bottom with type = FloatComplexT}
+  | [Double _, Complex _]               -> {bottom with type = DoubleComplexT}
+  | [Signed _, Long _]                  -> {bottom with type = LongT}
+  | [Long _, Int _]                     -> {bottom with type = LongT}
+  | [Long _, Double _]                  -> {bottom with type = LongDoubleT}
+  | [Long _, Long _]                    -> {bottom with type = LongLongT}
+  | [Unsigned _, Int _]                 -> {bottom with type = UIntT}
+  | [Signed _, Int _]                   -> {bottom with type = IntT}
+  | [Unsigned _]                        -> {bottom with type = UIntT}    
+  | [Signed _]                          -> {bottom with type = IntT}
+  | [Long _]                            -> {bottom with type = LongT} 
+  | [Int _]                             -> {bottom with type = IntT}
+  | [VoidTypeSpecifier _]               -> {bottom with type = VoidT}
+  | [Char _]                            -> {bottom with type = CharT}
+  | [Float _]                           -> {bottom with type = FloatT}
+  | [Double _]                          -> {bottom with type = DoubleT}
+  | [Short _]                           -> {bottom with type = ShortT}
+  | [Bool _]                            -> {bottom with type = BoolT} 
+  | [VarArgListSpecifier _]             -> {bottom with type = VarArgT}
+  | [StructureTypeDefinition _ as me]   -> analyze_decl_specifier me
+  | [StructureTypeReference _ as me]    -> analyze_decl_specifier me
+  | [UnionTypeDefinition _ as me]       -> analyze_decl_specifier me
+  | [UnionTypeReference _ as me]        -> analyze_decl_specifier me
+  | [EnumerationTypeDefinition _ as me] -> analyze_decl_specifier me
+  | [EnumerationTypeReference _ as me]  -> analyze_decl_specifier me
+  | [TypedefName _ as me]               -> analyze_decl_specifier me
+  | [TypeofSpecifier _ as me]           -> analyze_decl_specifier me ;
+ 
+(** Reduce a list containing storage class specifiers to a storage class *)
+mlvalue extractStorage = reduce to singleton "storage class specifier" with 
+    [ExternSpecifier _]   -> ExternS
+  | [RegisterSpecifier _] -> RegisterS
+  | [StaticSpecifier _]   -> StaticS
+  | [TypedefSpecifier _]  -> TypedefS
+  | [AutoSpecifier _]     -> AutoS ;
+
+ (** Reduce a list containing qualifiers to a qualifier list *)
+mlvalue extractQualifier = reduce to duplicate list "qualifier" with
+    [ConstantQualifier _] -> ConstQ
+  | [VolatileQualifier _] -> VolatileQ 
+  | [RestrictQualifier _] -> RestrictQ ;
+
+(** Extract function specifier from a list of specifiers.*)
+mlvalue extractFunctionSpecifier = 
+  reduce to singleton "inline specifier" with [FunctionSpecifier _] -> InlineF ;
+ 
+(**************************** Analyze functions *******************************)
+
+(* Analyze the top level node.*)
+mlvalue analyze n = match n with      
+  | TranslationUnit(l) -> let _ = List.map analyze_extern_decl l in voidt ;
+ 
+(* Analyze external declarations. *)           
+mlvalue analyze_extern_decl n = match n with    
+  | Declaration(_, specs, idl) -> 
+      let t = (analyze_decl_specifiers specs) in
+      if (is_bottom idl) then
+        let _ = if (is_not_bottom t.fSpec) then 
+                  error "'iniline in empty declaration" and
+            _ = if (is_not_bottom t.storage ) then 
+               warning "'useless storage classes specifier in empty declaration"
+        and _ = if (is_qualified t) then
+                 warning "'useless type qualifier in empty declaration" and
+            _ = if !(is_struct_union t) && !(is_enum t) then
+                  warning "declaration does not declare anything" in voidt
+      else let _ = analyze_init_decl_list t idl in voidt
+       
+  | FunctionDefinition(_, ds, fd, dl, cs) -> 
+     let lbl = find_labels [] cs in
+     let _ = check_defined_labels lbl cs and
+         t = if (is_bottom ds) then {bottom with type = IntT, 
+                                                 implicit = true} 
+               else analyze_decl_specifiers ds and
+         name = get_id_declarator fd and      
+         _ = begin match dl with
+                 DeclarationList(dl) -> 
+                   let _ = List.map analyze_extern_decl dl in voidt
+               | _ -> bottom                 
+             end and
+         cht = {bottom with type = CharT} in
+     let fnt = {bottom with type = ArrayT(cht,Fixed(String.ssize name))} in
+     let _ = define PrimaryIdentifier("__func__") fnt in       
+     let _ = if (has_auto t) then 
+               error "function definition declared 'auto'"
+             else 
+               if (is_register t) then
+                 error "function definition declared 'register'"
+               else if (is_typedef t) then 
+                   error "function definition declared 'typedef" and    
+         ft = analyze_declarator t fd in
+     let ret = get_return_type ft in          
+     let  _ = if ("main" = name) && !(IntT = ret.type) then
+               warning "return type of 'main' is not 'int' " in    
+     let _ = c_define fd (get_id_declarator fd) {ft with position = n} in
+     let _ = analyze_statement true lbl false cs in voidt
+       
+  | EmptyDefinition() | AssemblyDefinition _ -> voidt ; 
+
+(* Analyze declaration speccifiers. *)
+mlvalue analyze_decl_specifiers n = match n with
+    DeclarationSpecifiers(specs) -> process_specifiers specs        
+  | _ -> bottom;
+  
+(* Process specifiers. *)
+mlvalue process_specifiers specs = 
+  let t = extractType specs and s = extractStorage specs and
+      q = extractQualifier specs and f = extractFunctionSpecifier specs and
+      atts = analyze_att_specifiers [] specs in
+    if (is_bottom t) then
+      {bottom with type = IntT, qualifiers = combine_qualifiers q t.qualifiers, 
+                   storage = s, fSpec = f, gcc_attributes = atts}
+    else {t with qualifiers = combine_qualifiers q t.qualifiers,
+                 storage = s, fSpec = f, 
+                 gcc_attributes = combine_attributes atts t.gcc_attributes} ;  
+
+(* Analyze a declaration speccifier. *)
+mlvalue analyze_decl_specifier n = match n with
+    EnumerationTypeDefinition(_, s, EnumeratorList _ as en, att) -> 
+      let el = begin match en with
+                   EnumeratorList(ret) -> ret
+                 | _ -> bottom   
+               end and      
+          name = if (is_not_bottom s) then s
+                 else (fresh_name "enum") in
+      let non = nonce and       
+          tl = process_enums el 0 in
+      let att_list = analyze_att_list_node att in       
+      let _ = define EnumerationTypeReference(bottom,name) 
+           {bottom with type = EnumT(name,non,tl), gcc_attributes = att_list} in
+        {bottom with type = EnumT(name,non,tl), gcc_attributes = att_list}
+          
+  | EnumerationTypeReference(_, s) ->
+      if !(is_defined n) then 
+        let _ = define n {bottom with type = EnumT(s,bottom,bottom)} in
+          {bottom with type = EnumT(s,bottom,bottom)}
+      else let t = lookup n in 
+        require (is_enum t) error "'" ^ s ^ "' defined as wrong kind of tag" 
+          in t 
+       
+  | StructureTypeDefinition(att1, s, sdl, att2) -> 
+      let name = if (is_not_bottom s) then s
+                 else (fresh_name "struct") in
+      let nod = StructureTypeReference(bottom,name) in
+      if (is_not_bottom (ancestor (StructureDeclarationList _))) &&
+         (is_defined nod) then
+        error "redefinition of " ^ name
+      else let non = if !(is_defined nod) then nonce
+                else let told = lookup nod in
+                     begin match told.type with 
+                          StructT(_,no,_) -> no
+                       | _ -> bottom   
+                     end and
+          _ = if (is_bottom s) &&
+                 (is_not_bottom (ancestor (ParameterDeclaration _))) then
+                warning "anonymous struct declared inside parameter list" in
+      let att_list1 = analyze_att_list_node att1 and
+          att_list2 = analyze_att_list_node att2 in
+      let att_list = combine_attributes att_list1 att_list2 in 
+      let _ = if !(is_defined nod) then
+                c_define nod name {bottom with type = StructT(name, non, bottom), 
+                                     position = n, gcc_attributes = att_list} and
+          t = analyze_struct_decl_list sdl in
+        begin match t.type with 
+            ListT(l) -> 
+              let res = {bottom with type = StructT(name, non, l),
+                           gcc_attributes = att_list} and
+                  prev = lookup nod in 
+                if (is_incomplete prev) then
+                  let _ = redefine nod res in res  
+                else c_define nod name {res with position = n}
+          | _ -> bottom
+        end
+  | StructureTypeReference(_, s) ->
+      if !(is_defined n) then
+        let non = nonce in
+        let _ = if (is_not_bottom (ancestor (ParameterDeclaration _))) then
+                  warning "struct declared inside parameter list" and 
+            _ = define n {bottom with type = StructT(s, non, bottom)} in
+          {bottom with type = StructT(s, non, bottom)}
+      else lookup n 
+  | UnionTypeDefinition(att, s, sdl, _) -> 
+      let name = if (is_not_bottom s) then s
+                 else (fresh_name "union") in
+      let nod = UnionTypeReference(bottom,name) in 
+      if (is_not_bottom (ancestor (StructureDeclarationList _))) &&
+         (is_defined nod) then
+        error "redefinition of " ^ name          
+      else let non = if !(is_defined nod) then nonce
+                else let told = lookup nod in
+                     begin match told.type with 
+                          StructT(_,no,_) -> no
+                       | _ -> bottom   
+                     end and     
+          _ = if (is_bottom s) &&
+                 (is_not_bottom (ancestor (ParameterDeclaration _))) then
+                warning "anonymous struct declared inside parameter list" in
+      let att_list = analyze_att_list_node att in                               
+      let _ = if !(is_defined nod) then 
+                c_define nod name {bottom with type = UnionT(name, non, bottom), 
+                                    position = n, gcc_attributes = att_list} and
+          t = analyze_struct_decl_list sdl in 
+        begin match t.type with 
+            ListT(l) -> 
+              let res = {bottom with type = UnionT(name,non,l),
+                           gcc_attributes = att_list} and 
+                  prev = lookup nod in 
+                if (is_incomplete prev) then 
+                  let _ = redefine nod res in res 
+                else c_define nod name {res with position = n}
+          | _ -> bottom
+        end
+  | UnionTypeReference(_, s) ->
+      if !(is_defined n) then
+        let non = nonce in 
+        let _ = define n {bottom with type = UnionT(s, non, bottom)} in
+          {bottom with type = UnionT(s, non, bottom)}
+      else lookup n
+      
+  | TypedefName(s) -> lookup n error "undeclared typedef name " ^ s
+  
+  | TypeofSpecifier(e) -> begin match e with
+                              TypeName _ -> analyze_type_name e
+                            | _ -> analyze_expression e
+                          end                                                                  
+  | _ -> bottom ; 
+  
+(* Analyze attribute list node.*)
+mlvalue analyze_att_list_node n = match n with
+    AttributeSpecifierList(spec_list) -> analyze_att_specifiers [] spec_list;
+    
+(* Analyze attribute specifier list.*)
+mlvalue analyze_att_specifiers res spec_list = match spec_list with
+    [] -> res
+  | x::xs -> match x with
+                 AttributeSpecifier(AttributeList(att_list)) ->
+                   let alist = List.map analyze_attribute att_list in
+                   let new_res = List.append res alist in
+                     analyze_att_specifiers new_res xs
+               | _ -> analyze_att_specifiers res xs ;
+               
+(* Analyze attribute.*)
+mlvalue analyze_attribute att = match att with
+    AttributeListEntry(s,el) ->
+      match s with
+          "packed" -> 
+            let _ = if (is_not_bottom el) then
+              error "wrong number of arguments specified for 'packed' attribute"
+            in {bottom with att_name = s}  
+        | "aligned" ->
+            if (is_bottom el) then
+              let _ = error "wrong number of arguments specified for 'aligned' "
+                            ^ "attribute" in {bottom with att_name = s}
+            else begin match el with
+                ExpressionList(nl) -> 
+                  if (List.length nl > 1) then
+                    let _ = error "wrong number of arguments specified for "
+                                  ^ "'aligned' attribute" in 
+                      {bottom with att_name = s}
+                  else
+                    let t = analyze_expression (List.head nl) in
+                    let _ = if !(is_integer t) || !(is_const t) then
+                      error "requested alignment is not an integer constant" in
+                    let i = get_int t in
+                      {att_name = s, att_value = IValue(i)}  
+              end                      
+        | _ -> {bottom with att_name = s};                                                                  
+
+(* Analyzer initialized declarator list. *)
+mlvalue analyze_init_decl_list t n = match n with
+    InitializedDeclaratorList(dl) -> 
+      let _ = analyze_list_init_decl t dl in voidt
+  | _ -> bottom; 
+
+(**)
+mlvalue analyze_list_init_decl t dl = match dl with
+    [] -> []
+  | x::xs -> (analyze_init_decl t x) :: (analyze_list_init_decl t xs);
+    
+(* Analyze initialized declarator. *)
+mlvalue analyze_init_decl t n = match n with
+    InitializedDeclarator(_, dec, _, _, init) ->
+      let s = get_id_declarator dec in
+      let t1 = analyze_declarator t dec in
+      let _ = if (is_top n) then
+                if (is_static t) then
+                  redefine PrimaryIdentifier("top__" ^ s) {t1 with position = n}
+                else voidt  
+              else 
+                if (in_inner PrimaryIdentifier(s)) && (is_extern t) && 
+                   (is_defined PrimaryIdentifier("top__" ^ s)) then
+                  let told = lookup PrimaryIdentifier("top__" ^ s) in
+                  let pos = told.position in
+                  let _ = error "variable previously declared 'static' " ^
+                                "redeclared 'extern'" and
+                      _ = error "previous definition of '" ^ s ^ "' was here" 
+                            at pos in voidt in                                
+        if (is_bottom init) then 
+          let _ = if (is_array t1) && (is_complete t1) &&
+                     (is_incomplete (get_base t1)) then
+                    error "array type has incomplete element type" in 
+          c_define dec (get_id_declarator dec) {t1 with position = n, 
+                                                        in_top = is_top n}
+        else 
+          let _ = if (is_extern t1) then 
+                    warning "'" ^ s ^ "' initialized and declared 'extern'" and
+              _ = c_define dec (get_id_declarator dec) {t1 with position = n,
+                                                           in_top = is_top n} in
+             if (is_array t1) && (is_incomplete (get_base t1)) then
+                    error "array type has incomplete element type"   
+             else analyze_initializer init t1
+  | _ -> bottom;
+  
+mlvalue in_inner n = if !(is_defined n) then false 
+                     else let t = lookup n in
+                       if (is_bottom t.in_top) then true
+                       else !(t.in_top) ;    
+
+(* Analyze declarator. *)
+mlvalue analyze_declarator t n = match n with
+    PointerDeclarator(pointer, targ) ->  
+      let t1 = analyze_pointer t pointer in 
+        if (is_bottom targ) then t1
+        else analyze_declarator t1 targ        
+         
+  | FunctionDeclarator(dec, idl) ->
+      if (is_bottom idl) then
+        let ft = {bottom with type = FunctionT(t,bottom), storage = t.storage} 
+          in analyze_declarator ft dec
+      else begin match idl with
+          IdentifierList(strl) ->
+            let tl = define_id_list strl in
+            let ft = {bottom with type = FunctionT(t,tl), storage = t.storage,
+                                  old_style = true}
+              in analyze_declarator ft dec    
+        | _ ->
+          let lt = analyze_para_type_list idl in
+          let ft = begin match lt.type with
+              ListT(l) -> 
+                {bottom with type = FunctionT(t, l), storage = t.storage, 
+                             var_args = lt.var_args}
+            | VoidT _ -> 
+                {bottom with type = FunctionT(t,[voidt]),storage = t.storage,
+                             var_args = lt.var_args}
+            | _ -> bottom    
+          end in
+            analyze_declarator ft dec          
+      end
+         
+  | ArrayDeclarator(dec, ArrayQualifierList _ as aq, no) -> 
+     let aql = begin match aq with
+                   ArrayQualifierList(ql) -> ql
+                 | _ -> bottom
+               end in         
+     let q = extractQualifier aql in
+     let aty = processArray t no in
+     if (is_not_bottom aty) then
+       analyze_declarator {aty with qualifiers = q} dec 
+           
+  | AttributedDeclarator(_, dec, _) -> 
+      let s = get_id_declarator dec and
+          t1 = analyze_declarator t dec in 
+        if (is_not_bottom (ancestor (StructureDeclaration _))) then  
+          if !(is_array t1) && (is_incomplete t1) then
+            error "field " ^ s ^ " has incomplete type"  
+          else {bottom with type = MemberT(s, t1)}
+        else t1 
+                         
+  | SimpleDeclarator(_) -> t 
+  
+  | BitField(_, sd, val, _) -> 
+     let t1 = analyze_expression val in 
+     let s = get_id_declarator sd and           
+         i = get_int t1 in
+     let new_t = if (is_integer t) then t
+                 else error "bit-field has invalid type" in
+     (*let _ = if (!(is_integer t1) || !(is_const t1)) then
+                 error "bit-field width not an integer constant" in*)
+     let _ = if (0 = i) && (is_not_bottom sd) then
+               error "zero width for bit-field" in
+     let _ = if (0 > i) then
+               error "negative width for bit-field" in                                    
+     let ty = {bottom with type = BitfieldT(new_t, i)} in    
+       {bottom with type = MemberT(s, ty)}         
+  | _ -> bottom ; 
+  
+(* Analyze statement. *)                                         
+mlvalue analyze_statement is_body lbl is_expr n = if (is_bottom n) then voidt
+                                          else match n with
+    EmptyStatement() -> voidt
+    
+  | ExpressionStatement(e)  ->  analyze_expression e
+  
+  | CompoundStatement(l) ->
+      let _ = if (is_body) then define_labels lbl true in
+      let local_labels = find_local_labels l in
+      let _ = define_labels local_labels false in
+      let tl = List.map analyze_generic l in
+        if (is_expr) then
+          let lastt = if (List.length tl > 1) then 
+                        List.nth tl ((List.length tl) - 2) 
+                      else List.nth tl ((List.length tl) - 1)  in 
+          if (is_not_bottom lastt) && !(is_void lastt) then lastt 
+          else voidt
+        else voidt
+        
+  | IfElseStatement(e, cs1, cs2) ->
+      let _ = ensure_scalar (pointerize (analyze_expression e)) 
+                "conditional statement" and 
+          _ = analyze_statement false [] false cs1 and 
+          _ = analyze_statement false [] false cs2 in voidt
+        
+  | IfStatement(e, cs) | WhileStatement(e, cs) | DoStatement(cs, e) ->
+      let _ = ensure_scalar (pointerize (analyze_expression e)) 
+                "conditional statement" and 
+          _ = analyze_statement false [] false cs in voidt
+        
+  | SwitchStatement(e, cs) -> 
+     let _ = ensure_integer (analyze_expression e) 
+               "switch expression" and 
+         _ = analyze_statement false [] false cs in voidt
+               
+  | ForStatement(n1, n2, n3, cs) -> 
+     let _ = analyze_init_clause n1 and 
+         _ = ensure_scalar (pointerize (analyze_expression n2)) 
+               "for expression" and 
+         _ = analyze_expression n3 and 
+         _ = analyze_statement false [] false cs in voidt 
+         
+  | BreakStatement     -> let _ = ensure_in_loop_or_switch n in voidt
+
+  | ContinueStatement  -> let _ = ensure_in_loop n in voidt 
+  
+  | GotoStatement(str, PrimaryIdentifier _ as p) ->
+      let s = match p with
+                  PrimaryIdentifier(name) -> name
+                | _ -> bottom in   
+      if (is_bottom str) then 
+        if !(is_defined n) then
+          let _ = error "label '" ^ s ^ "' used but not defined" in voidt
+        else 
+          let lt = lookup n in
+          if !(lt.initialised) then
+            let _ = error "label '" ^ s ^ "' used but not defined" in voidt
+          else voidt    
+      else let _ = analyze_expression p in voidt   
+   
+  | GotoStatement(_,e) -> let _ = analyze_expression e in voidt    
+         
+  | LabeledStatement(lb,st) -> let _ = analyze_label lb and
+          _ = analyze_statement false [] false st in voidt
+      
+  | AssemblyStatement _ -> voidt
+  
+  | ReturnStatement(e) -> let t = analyze_expression e in 
+      let rt = begin match (ancestor (FunctionDefinition _)) with
+                   FunctionDefinition(_, _, fd, _, _) -> 
+                     let ft = lookup fd in 
+                       get_return_type ft
+                 | _ -> bottom
+               end in
+      let _ =                     
+        if (is_not_bottom t && is_void rt && !(is_void t)) then 
+          warning "'return with a value in function returning void"
+        else if ((is_pointer t || is_array t) && is_integer rt) then
+              warning "return makes integer from pointer without cast"
+        else if (is_struct_union t) && (is_incomplete t) then
+           error "return incomplete type"
+        else processAssignment false rt "return statement" t in voidt                                        
+  | _ -> voidt ;
+
+(* Analyzer enumerator.*)
+mlvalue analyze_enumerator n val = if (is_bottom n) then val + 1
+                                   else match n with
+    Enumerator(_, n1) -> 
+      if (is_bottom n1) then
+        let _ = define n {bottom with type = IntT, value = IValue(val), 
+                                   qualifiers = [ConstQ]} in val + 1
+      else 
+        let t = ensure_integer (analyze_expression n1) "enumerator" in 
+        let _ = define n t and
+            new_val = get_int t in
+          if (is_bottom new_val) then val + 1
+          else new_val + 1        
+  | _ -> val + 1 ;
+  
+(* Analyzer expression.*)
+mlvalue analyze_expression n = match n with
+
+    CommaExpression(e1, e2) -> let _ = analyze_expression e1 in
+                                 analyze_expression e2
+                                 
+  | AssignmentExpression(n1, op, n2) -> 
+      let t1 = analyze_expression n1 and 
+          t2 = analyze_expression n2 in 
+      let _ = ensure_modifiable_lvalue t1 in 
+      let _ = begin match op with
+                 "=" -> processAssignment false t1 op t2
+               | _ -> bottom
+              end in t1
+              
+  | ConditionalExpression(n1, n2, n3) ->
+      let t1 = analyze_expression n1 and
+          t3 = analyze_expression n3 in 
+      let _ = ensure_scalar (pointerize t1) "conditional expression" in 
+      let _ = analyze_expression n2 in 
+        (* Add code here*) 
+        if (is_bottom n2) then t1
+        else {t3 with value = bottom}
+        
+  | LogicalAndExpression(left, right) ->
+      let _ = ensure_scalar (pointerize (analyze_expression left)) 
+                "logical expression" and
+          _ = ensure_scalar (pointerize (analyze_expression right)) 
+                "logical expression" in
+        {bottom with type = IntT}
+              
+  | LogicalOrExpression(left, right) -> 
+      let _ = ensure_scalar (pointerize (analyze_expression left)) 
+                "logical expression" and 
+          _ = ensure_scalar (pointerize (analyze_expression right))
+                "logical expression" in {bottom with type = IntT}
+ 
+  | LogicalNegationExpression(e) -> 
+      let t = ensure_scalar (pointerize (analyze_expression e)) 
+                            "logical expression" in
+      let val = if (is_const t) then
+                  if (zero t) then IValue(1)
+                  else IValue(0) and
+          con = if (is_const t) then [ConstQ] in                   
+        {bottom with type = IntT, qualifiers = con, value = val}
+        
+  | BitwiseOrExpression(l, r) -> 
+      let t1 = ensure_integer (analyze_expression l) "bitwise expression" and 
+          t2 = ensure_integer (analyze_expression r) "bitwise expression" in
+        {t1 with value = IValue(or_bits (get_int t1) (get_int t2)) }
+  
+  | BitwiseAndExpression(l, r) ->
+      let t1 = ensure_integer (analyze_expression l) "bitwise expression" and 
+          t2 = ensure_integer (analyze_expression r) "bitwise expression" in
+        {t1 with value = IValue(and_bits (get_int t1) (get_int t2) ) }
+
+  | BitwiseXorExpression(l, r) -> 
+      let t1 = ensure_integer (analyze_expression l) "bitwise expression" and
+          t2 = ensure_integer (analyze_expression r) "bitwise expression" in
+        {t1 with value = IValue(xor_bits (get_int t1) (get_int t2) ) }
+   
+  | BitwiseNegationExpression(e) -> 
+      let t = ensure_integer (analyze_expression e) "bitwise expression" in 
+        {t with value = IValue(negate_bits (get_int t)) }
+        
+  | EqualityExpression(n1, op, n2) -> 
+      let t1 = pointerize(analyze_expression n1) and
+          t2 = pointerize (analyze_expression n2) in
+        if (is_bottom t1) || (is_bottom t2) then bottom   
+        else 
+          let val = begin if (is_const t1) && (is_const t2) then
+                      if (value_equals t1 t2) && (op = "==") then IValue(1)
+                      else if (value_equals t1 t2) then IValue(0)
+                      else if (op = "!=") then IValue(1)
+                      else IValue(0)
+                    end and
+              con = if (is_const t1) && (is_const t2) then [ConstQ]
+                    else [] in           
+        if (is_arithmetic t1 && is_arithmetic t2) then
+          {bottom with type = IntT, qualifiers = con, value = val}
+        else 
+          if (is_pointer t1 && is_pointer t2) then
+            let b1 = get_base t1 and b2 = get_base t2 in
+            if (type_match t1 t2 || is_void b1 || is_void b2 ||
+               (is_arithmetic b1 && is_arithmetic b2)) then 
+              {bottom with type = IntT, qualifiers = con, value = val}
+            else error "comparison of distinct pointer types lacks a cast"
+          else if (is_pointer t1 && is_integer t2 && zero t2) then
+            {bottom with type = IntT, qualifiers = con, value = val}
+          else if ((is_integer t1 && is_pointer t2)||
+                   (is_integer t2 && is_pointer t1)) then
+            let _ = warning "comparison between pointer and integer" in
+              {bottom with type = IntT, qualifiers = con, value = val}
+          else error "invalid operands to binary " ^ op 
+          
+  | RelationalExpression(n1, _, n2) -> 
+     let t1 = analyze_expression n1 and
+         t2 = analyze_expression n2 in
+       if ((is_float t1) || (is_integer t1)) && 
+          ((is_float t2) || (is_integer t2)) then
+         {bottom with type = IntT}
+       else 
+         if (is_pointer t1 && is_pointer t2) then
+           if (type_match t1 t2) then {bottom with type = IntT}
+           else error "comparison of distinct pointer types lacks a cast"
+           
+  | ShiftExpression(n1, "<<", n2) -> 
+      let t1 = ensure_integer (analyze_expression n1) "shift expression" and
+          t2 = ensure_integer (analyze_expression n2) "shift expression" in
+      let val = get_int t2 and
+          quals = if (is_const t1) && (is_const t2) then [ConstQ]
+                  else [] and
+          res = promote t1 in
+      let _ = if (is_not_bottom val && 0 > val) then
+          warning "left shift count is negative" and
+          _ = if (is_not_bottom val && (sizeof res)*8 <= val) then
+          warning "left shift count >= width of type" in    
+        {res with value = IValue(shift_left (get_int t1) (get_int t2)),
+                  qualifiers = quals}
+ 
+  | ShiftExpression(n1, ">>", n2) -> 
+     let t1 = ensure_integer (analyze_expression n1) "shift expression" and
+         t2 = ensure_integer (analyze_expression n2) "shift expression" in
+     let val = get_int t2 and
+         quals = if (is_const t1) && (is_const t2) then [ConstQ]
+                  else [] and
+         res = promote t1 in
+      let _ = if (is_not_bottom val && 0 > val) then
+          warning "right shift count is negative" and
+          _ = if (is_not_bottom val && (sizeof res)*8 <= val) then
+          warning "right shift count >= width of type" in    
+       {res with value = IValue(shift_right (get_int t1) (get_int t2)),
+                 qualifiers = quals}
+       
+  | AdditiveExpression(n1, op, n2) ->
+      let t1 = analyze_expression n1 and
+          t2 = analyze_expression n2 in
+        if (is_bottom t1) || (is_bottom t2) then bottom  
+        else if (is_arithmetic t1 && is_arithmetic t2) then
+          let val = if (is_integer t1) then
+                      if ("+" = op) then IValue((get_int t1) + (get_int t2))
+                      else IValue((get_int t1) - (get_int t2))
+                    else 
+                      if ("+" = op) then FValue((get_float t1) +. (get_float t2))
+                      else FValue((get_float t1) -. (get_float t2)) and
+              quals = if (is_const t1) && (is_const t2) then [ConstQ]
+                  else [] and        
+              res = arith_convert t1 t1 in {res with value = val, 
+                                                     qualifiers = quals}
+        else if ((is_pointer t1 ||is_array t1) && !(is_void (get_base t1)) && 
+                (is_incomplete (get_base t1))) then                
+          error "arithmetic on pointer to an incomplete type"
+        else if ((is_pointer t2 ||is_array t2) && !(is_void (get_base t2)) &&
+                (is_incomplete (get_base t2))) then
+          error "arithmetic on pointer to an incomplete type"              
+        else 
+          let r1 = pointerize t1 and r2 = pointerize t2 in
+          begin match op with
+              "+" -> 
+                if (is_pointer r1 && is_integer r2) then t1
+                else if (is_integer r1 && is_pointer r2) then t2
+                else if (is_pointer r1 && is_pointer r2) && 
+                        (pointer_equals t1 t2) then to_pointer t1
+                else if (is_array t1 && is_arithmetic (get_base t1) &&
+                         is_arithmetic t2) then t1
+                else if (is_arithmetic t1 && is_array t2 &&
+                         is_arithmetic (get_base t2)) then t2                 
+                else error "invalid operand to 'binary " ^ op
+            | _  ->
+               if (is_pointer r1 && is_pointer r2 && 
+                   pointer_equals r1 r2) then {bottom with type = IntT}         
+               else if (is_pointer r1 && is_integer r2) then t1
+               else if (is_array t1 && is_arithmetic (get_base t1) &&
+                         is_arithmetic t2) then t1
+               else error "invalid operand to 'binary " ^ op
+          end  
+          
+  | MultiplicativeExpression(n1, op, n2) -> 
+      let t1 = ensure_scalar(analyze_expression n1) 
+                 "multiplicative expression" and
+          t2 = ensure_scalar(analyze_expression n2) 
+                 "multiplicative expression" in 
+      let val = if (is_integer t1) then 
+                  if ("*" = op) then IValue((get_int t1) * (get_int t2))
+                  else
+                    let i = get_int t2 in
+                      if (i = 0) then bottom
+                      else IValue((get_int t1) / i)
+                else 
+                  if ("*" = op) then FValue((get_float t1) *. (get_float t2))
+                  else 
+                    let f = get_float t2 in
+                      if (f = 0.0) then bottom                 
+                      else FValue((get_float t1) /. f) and 
+          quals = if (is_const t1) && (is_const t2) then [ConstQ] 
+                  else [] and                  
+          res = arith_convert t1 t2 in            
+        begin match op with  
+            "%"  ->
+              let tmod1 = ensure_integer t1 "modulo expression" and
+                  tmod2 = ensure_integer t2 "modulo expression" in
+                if (is_not_bottom tmod1 && is_not_bottom tmod2) then 
+                  { t1 with value = val, qualifiers = quals}
+          | "/" -> if (is_const t2) && (zero t2) then
+                    let _ = warning "division by zero" and
+                        _ = if (is_top n) && (is_not_bottom 
+                                  (ancestor (InitializedDeclarator _))) then
+                              let init = ancestor (InitializedDeclarator _) in
+                              let s = match init with
+                                          InitializedDeclarator(_,dec,_,_,_) ->
+                                            get_id_declarator dec
+                                        | _ -> "" in                                           
+                             error "initializer of '" ^ s ^ "' is not constant" in 
+                      {res with qualifiers = quals, value = val}                                   
+                   else {res with qualifiers = quals, value = val}
+          | "*" -> {res with qualifiers = quals, value = val}
+          | _ -> bottom
+        end 
+        
+  | SizeofExpression(e) -> 
+      let t = begin match e with
+                   TypeName _ -> analyze_type_name e
+                | _ -> analyze_expression e
+              end in
+      if (is_bottom t) then bottom             
+      else if !(is_array t) && (is_incomplete t) then 
+          error "invalid application of 'sizeof' to incomplete type" 
+      else if (is_bitfield t) then
+            error "'sizeof' applied to a bit-field" 
+      else let si = sizeof(t) in
+             {bottom with type = IntT, qualifiers = [ConstQ],
+                        value = IValue(si)}
+                        
+  | AlignofExpression(e) -> 
+      let t = begin match e with
+                   TypeName _ -> analyze_type_name e
+                | _ -> analyze_expression e
+              end in
+      if (is_bottom t) then bottom        
+      else if !(is_array t) && (is_incomplete t) then 
+        error "invalid application of '__alignof' to incomplete type"
+      else if (is_bitfield t) then
+        error "__alignof' applied to a bit-field"
+      else let al = get_alignment t true in
+             {bottom with type = IntT, qualifiers = [ConstQ],
+                        value = IValue(al)} 
+      
+  | UnaryPlusExpression(e) -> 
+     let t = ensure_arithmetic (analyze_expression e) "unary plus expression" in 
+       if (is_float t) then
+         {t with value = FValue(abs_float (get_float t))}
+       else 
+         if (is_integer t) then
+           {t with value = IValue(abs_int (get_int t))}
+
+  | UnaryMinusExpression(e) ->
+     let t = ensure_arithmetic (analyze_expression e) "unary minus expression" in 
+       if (is_float t) then {t with value = FValue(negate_float (get_float t))}
+       else if (is_integer t) then
+              {t with value = IValue(negate_int (get_int t))}
+             
+  | AddressExpression(e) -> 
+      begin match e with
+          IndirectionExpression(e1) -> 
+            let t = analyze_expression e1 in
+            let _ = process_indirection (pointerize t) in t            
+        | SubscriptExpression(e1,e2) ->
+            let t = analyze_expression e1 and
+                _ = ensure_integer (analyze_expression e2) 
+                      "subscript expression" in                
+            let _ = process_subscript t in t                   
+        | _ -> 
+          let t = analyze_expression e in
+        {bottom with type = PointerT({bottom with type = t.type}), 
+                     qualifiers = t.qualifiers, value = t.value}
+      end 
+      
+  | LabelAddressExpression(_) -> 
+      let _ = lookup n error "undefined label" in
+        {bottom with type = PointerT({bottom with type = VoidT})}  
+                                                              
+  | IndirectionExpression(e) -> 
+      let t = pointerize (analyze_expression e) in process_indirection t  
+      
+  | PreincrementExpression(e) | PredecrementExpression(e) -> 
+     let t = ensure_scalar (analyze_expression e) 
+               "increment/decrement expression" in
+     let _ = ensure_modifiable_lvalue t in
+       if (is_pointer t || is_array t) && !(is_void (get_base t)) &&
+          (is_incomplete (get_base t)) then
+         error "arithmetic on pointer to an incomplete type" 
+       else t  
+  
+  | ExtensionExpression(e) -> analyze_expression e   
+                          
+  | PostdecrementExpression(e) -> 
+      let t = ensure_scalar (analyze_expression e) 
+                "increment/decrement expression" in
+      let _ = ensure_modifiable_lvalue t in 
+        if (is_float t) then
+            {t with value = FValue(1.0 -. (get_float t)) }
+        else 
+          if (is_integer t) then
+            {t with value = IValue(1 - (get_int t)) }
+          else if (is_pointer t || is_array t) && !(is_void (get_base t)) &&
+                  (is_incomplete (get_base t)) then
+                 error "arithmetic on pointer to an incomplete type"            
+               else t  
+
+  | PostincrementExpression(e) -> 
+      let t = ensure_scalar (analyze_expression e) 
+         "increment/decrement expression" in
+      let _ = ensure_modifiable_lvalue t in 
+        if (is_float t) then
+            {t with value = FValue(1.0 +. (get_float t)) }
+        else 
+          if (is_integer t) then
+            {t with value = IValue(1 + (get_int t)) }
+          else if (is_pointer t || is_array t) && !(is_void (get_base t)) &&
+                  (is_incomplete (get_base t)) then
+                 error "arithmetic on pointer to an incomplete type" 
+               else t 
+            
+  | StatementAsExpression(e) -> analyze_statement false [] true e
+  
+  | CastExpression(tn, e) -> 
+     let t1 = analyze_type_name tn in
+       begin match e with
+           InitializerList _ -> analyze_initializer e t1
+         | _ -> let t2 = analyze_expression e in
+                let rt = processCast t1 t2 in 
+                  {rt with qualifiers = t2.qualifiers, value = t2.value}                  
+       end 
+                
+  | SubscriptExpression(e2, e3) -> 
+      let _ = ensure_integer (analyze_expression e3) "subscript expression" and
+          t = analyze_expression e2 in
+        process_subscript t     
+  
+  | OffsetofExpression(tn, e) ->
+      let base = analyze_type_name tn in
+      let res = process_offset {base with value = IValue(0)} e in
+      let val = if (is_bottom res) then bottom
+                else res.value in
+        {bottom with type = IntT, qualifiers = [ConstQ], value = val}
+                          
+  | FunctionCall(id, el) -> 
+      let elt = begin match el with 
+                    ExpressionList(elist) -> List.map analyze_expression elist
+                  | _ -> bottom  
+                end in
+      begin match id with
+          PrimaryIdentifier(name) ->
+            if ("__xtc_trace" = name) then
+              if (List.length elt > 0) then
+                let tf = List.head elt in
+                let _ = trace tf in voidt
+              else voidt
+            else   
+            if !(is_defined id) then 
+              let _ = define id {bottom with type = 
+                        FunctionT({bottom with type = IntT}, elt),
+                        storage = ExternS, implicit = true, old_style = true} in
+                {bottom with type = IntT}
+            else 
+              let ft = lookup id in
+              let ret  = get_return_type ft and 
+                  tl  = getParameterTypes ft in 
+              let _ = if !(is_old_stype ft) then
+                processArguments tl elt (is_var_args ft) in ret   
+        | _ -> 
+            let t = resolve (analyze_expression id) in 
+              if (is_bottom t) then bottom
+              else
+               let ft = if (is_pointer t && 
+                           is_function (get_base t)) then get_base t
+                        else if (is_function t) then t
+                        else error "called is not a function" in
+                 if (is_not_bottom ft) then
+                   let ret = get_return_type ft and
+                       tl = getParameterTypes ft in
+                   let _ = processArguments tl elt false in ret            
+              
+      end
+      
+  | DirectComponentSelection(n1, s) -> 
+      let t = analyze_expression n1 in process_selection t s true       
+   
+  | IndirectComponentSelection(n1, s) -> 
+      let t = pointerize(analyze_expression n1) in                                        
+      if (is_not_bottom t) then 
+      if (is_pointer t) then 
+        let base = get_base t in 
+        let member = process_selection base s false in
+          if (is_not_bottom (ancestor (AddressExpression _))) then
+            let si = get_int t and
+                off = get_offset base s in
+            let val = if (is_bottom si) then bottom
+                      else IValue(si + off) in
+                {member with qualifiers = t.qualifiers, value = val}
+          else member      
+      else error "pointer type is required"
+      
+  | CompoundLiteral(n1, init) -> let t = analyze_type_name n1 in
+                                 let _ = analyze_initializer init t in t
+                                  
+  | VariableArgumentAccess(n1, n2) -> 
+      require ((analyze_expression n1) = {bottom with type = VarArgT})
+          error "first argument to 'va_arg' not of type 'va_list'" in 
+        analyze_type_name n2 
+
+  | PrimaryIdentifier(s) -> lookup n error "undeclared identifier " ^ s 
+                       
+  | FloatingConstant(s) -> 
+      {bottom with type = LongDoubleT, qualifiers = [ConstQ], 
+                   value = FValue(String.stof s)} 
+
+  | StringConstant(sl) -> let s = String.join_strings sl in 
+      let t = if (String.starts_withi s "l") then WideCharT
+              else CharT in 
+        {bottom with type = ArrayT({bottom with type = t, qualifiers = [ConstQ]}
+                                   , Fixed(String.ssize s)),
+                     qualifiers = [ConstQ], value = SValue(s)} 
+
+  | CharacterConstant(_) -> {bottom with type = CharT, qualifiers = [ConstQ]}  
+  
+  | IntegerConstant(s) -> 
+    if (String.ends_withi s "ull") then
+      {bottom with type = ULongLongT, qualifiers = [ConstQ],
+       value = IValue(parse_int (String.substring2 s 0 ((String.ssize s) - 3)))}
+    else if (String.ends_withi s "ll") then
+      {bottom with type = LongLongT, qualifiers = [ConstQ],
+       value = IValue(parse_int (String.substring2 s 0 ((String.ssize s) - 2)))}
+    else if (String.ends_withi s "ul") then
+       {bottom with type = ULongT, qualifiers = [ConstQ],
+       value = IValue(parse_int (String.substring2 s 0 ((String.ssize s) - 2)))}   
+    else if (String.ends_withi s "u") then
+       {bottom with type = UIntT, qualifiers = [ConstQ],
+       value = IValue(parse_int (String.substring2 s 0 ((String.ssize s) - 1)))}     
+    else if (String.ends_withi s "l" || String.ends_with s "L") then
+       {bottom with type = LongT, qualifiers = [ConstQ],
+       value = IValue(parse_int (String.substring2 s 0 ((String.ssize s) - 1)))}
+    else    
+      {bottom with type = LongT, qualifiers = [ConstQ],
+                   value = IValue(parse_int s)}  
+  | _ -> bottom;
+
+(* Analyze structure declaration list.*)
+mlvalue analyze_struct_decl_list n = match n with
+    StructureDeclarationList(sdl) ->
+      let tl = (List.map analyze_struct_declaration (removeLast sdl)) in
+      let ret = flattenListTypes tl in {bottom with type = ListT(ret)}
+  | _ -> bottom;
+  
+(* Remove the last node of a list and return the resulted list. *)
+mlvalue removeLast nl = match nl with
+    [] | [_] -> []
+  | x::xs -> List.append [x] (removeLast xs) ;  
+
+(* Analyze type name. *)
+mlvalue analyze_type_name n = match n with 
+    TypeName(sql, ab) ->
+      let t = analyze_spec_qual_list sql in
+      if (is_not_bottom t) then
+        if (is_bottom ab) then t
+        else analyze_abs_declarator t ab
+  | _ -> bottom      
+;
+                 
+(* Analyze pointer.*)
+mlvalue analyze_pointer t n = match n with 
+    Pointer(TypeQualifierList(tl), bottom) ->
+      let q = extractQualifier tl in 
+        {bottom with type = PointerT(t), storage = t.storage,
+           qualifiers = q}
+
+  | Pointer(TypeQualifierList _ as tq, pointer) -> 
+      let tl = begin match tq with
+                   TypeQualifierList(l) -> l
+                 | _ -> bottom 
+               end in          
+      let q = extractQualifier tl in 
+      let rt = analyze_pointer t pointer in
+        {bottom with type = PointerT(rt), storage = t.storage,
+           qualifiers = q}
+  | _ -> bottom;
+
+(* Analyze parameter type list.*)
+mlvalue analyze_para_type_list n = match n with
+    ParameterTypeList(ParameterList _ as p, s) ->
+      let pl = match p with
+                   ParameterList(nl) -> nl
+                 | _ -> bottom in          
+      let tl = List.map analyze_parameter_declaration pl in
+          if !(List.exists is_bottom tl) then  
+          {bottom with type = ListT(tl), var_args = is_not_bottom s}
+  | _ -> bottom;
+
+(* Analyze generic.*)
+mlvalue analyze_generic n: Node 'a = 
+  if (is_extern_declaration n) then analyze_extern_decl n
+  else analyze_statement false [] false n;  
+  
+(* Analyze initial clause.*)
+mlvalue analyze_init_clause n = 
+  if (is_bottom n) then voidt
+  else if (is_extern_declaration n) then analyze_extern_decl n
+       else analyze_expression n; 
+
+(* Analyze label.*)
+mlvalue analyze_label n = match n with
+  | CaseLabel(n1, n2)  -> 
+      let _ = ensure_in_switch n1 and 
+          _ = ensure_integer (analyze_expression n1) "case label" in
+      let _ = analyze_expression n2 in voidt
+
+  | DefaultLabel -> let _ = ensure_in_switch n in 
+      let _ = redefine n {bottom with type = LabelT("default")} in voidt
+        
+  | NamedLabel(str,_) ->
+      let _ = redefine n {bottom with type = LabelT(str),initialised = true}
+        in voidt ;  
+    
+(* Analyze structure declaration. *)
+mlvalue analyze_struct_declaration n = match n with
+    StructureDeclaration(_, sql, sdl) -> 
+      let t = analyze_spec_qual_list sql in
+      if (is_bottom sdl) then
+        let name = fresh_name "member" in
+            {bottom with type = ListT([{bottom with type = MemberT(name,t)}])}
+        (*begin match t.type with
+            UnionT(_,_,tl) -> {bottom with type = ListT(tl)}
+          | _ -> let name = fresh_name "member" in
+            {bottom with type = ListT([{bottom with type = MemberT(name,t)}])}                   
+        end*)
+      else analyze_struct_declarator_list t sdl      
+  | _ -> bottom;
+  
+(* Analyze structure declarator list.*)
+mlvalue analyze_struct_declarator_list t n = match n with
+    StructureDeclaratorList(sdl) -> 
+      {bottom with type = ListT(analyze_declarator_list t sdl)}  
+  | _ -> bottom;
+  
+(**)
+mlvalue analyze_declarator_list t dl = match dl with
+    [] -> []
+  | x::xs -> (analyze_declarator t x) :: (analyze_declarator_list t xs);
+    
+(* Analyze specifier_qualifier list.*)
+mlvalue analyze_spec_qual_list n = match n with
+    SpecifierQualifierList(specs) -> process_specifiers specs 
+  | _ -> bottom;
+  
+(* Analyze abstract declarator.*)
+mlvalue analyze_abs_declarator t n = match n with
+    AbstractDeclarator(p,dec) ->
+      if (is_bottom p) then
+        analyze_direct_abs_decl t dec
+      else   
+        let t1 = analyze_pointer t p in
+        if (is_bottom dec) then t1
+        else analyze_direct_abs_decl  t1 dec  
+  | _ -> bottom;
+
+(* Analyze a parameter declaration.*)
+mlvalue analyze_parameter_declaration n = match n with
+    ParameterDeclaration(specs, dec, _) -> 
+      let t = analyze_decl_specifiers specs in
+      if (is_bottom dec) then 
+        if (is_void t) && !(List.is_empty t.qualifiers)
+            then error "'void' as only parameter may not be qualified"
+        else if (is_void t) && (is_not_bottom t.storage)
+            then error "'void' as only parameter may not have storage class"
+             else t
+      else 
+        let t2 = begin match dec with
+                     AbstractDeclarator _ -> analyze_abs_declarator t dec
+                   | _ -> analyze_declarator t dec         
+                 end in
+        
+          if (is_incomplete t2) && !(is_array t2) then
+            error "parameter has incomplete type"               
+          else begin match dec with
+              AbstractDeclarator _ -> t2
+            | _ -> 
+              let _ = define PrimaryIdentifier(get_id_declarator dec) t2 in t2              
+          end
+        
+  | _ -> bottom;
+
+mlvalue analyze_direct_abs_decl t n = match n with
+    DirectAbstractDeclarator(n1,str,n2) ->
+      let ret = 
+          if ("[" = str) then processArray t n2
+          else if (is_bottom n2) then 
+            {bottom with type = FunctionT(t,bottom), storage = t.storage}
+          else let lt = analyze_para_type_list n2 in
+            begin match lt.type with
+                ListT(l) -> 
+                  {bottom with type = FunctionT(t, l), storage = t.storage,
+                               var_args = lt.var_args}
+              | VoidT _ -> 
+                  {bottom with type = FunctionT(t,[voidt]),
+                               storage = t.storage, var_args = lt.var_args}
+              | _ -> bottom    
+            end in
+        if (is_bottom n1) then ret
+        else analyze_direct_abs_decl ret n1  
+         
+  | AttributedAbstractDeclarator(_,dec) ->
+      analyze_abs_declarator t dec       
+  | _ -> bottom;       
+ 
+(************************** Analyze helper functions **************************)
+(* Process offsetof expression.*)
+mlvalue process_offset base expr = match expr with
+    PrimaryIdentifier(str) -> 
+      let member = process_selection base str true in
+        if (is_bottom member) then bottom
+        else let off = get_offset base str in
+          {member with value = IValue(off)} 
+  | DirectComponentSelection(e,str) ->
+      let new_base = process_offset base e in
+        if (is_bottom new_base) then bottom
+        else 
+          let member = process_selection new_base str true in
+            if (is_bottom member) then bottom
+            else let off = get_offset new_base str in
+                   {member with value = IValue(off + (get_int new_base))}
+ | SubscriptExpression(e1,e2) ->  
+     let new_base = process_offset base e1 in
+       if (is_bottom new_base) then bottom
+       else                  
+         let indext = analyze_expression e2 in
+           if (is_bottom indext) then bottom
+           else let element = process_subscript new_base in
+             if (is_bottom element) then bottom
+             else let off = (get_int new_base) + 
+                            ((sizeof element) * (get_int indext)) in
+               {element with value = IValue(off)}
+  | _ -> 
+    error "second argument to 'offsetof' neither a selection nor a subscript" ;
+    
+(* Get offset.*)
+mlvalue get_offset base name = match base.type with
+    StructT(_,_,tl) -> let res = layout 0 (is_packed base) (has_trailing_array base)
+                                       0 0 1 name tl
+                         in res                
+  | UnionT(_,_,tl) -> get_offset_members name tl                                     
+  | _ -> (0 - 1) ;  
+  
+(**)
+mlvalue get_offset_members name tl = match tl with
+    [] -> (0 - 1)
+  | x::xs -> match x.type with
+                 MemberT(me,ty) ->
+                   if (me = name) then 0
+                   else 
+                     if !(is_bitfield ty) && 
+                           (String.starts_with me "member(") then
+                       let off = get_offset ty name in
+                         if (off >= 0) then off
+                         else get_offset_members name xs
+                     else get_offset_members name xs      
+               | _ -> bottom ;       
+                                                                  
+(* Process indirection expression. *)
+mlvalue process_indirection t = let ret = get_base t in  
+  if (is_bottom t) then bottom  
+  else if !(is_pointer t) then
+    let _ = error "operand to 'unary *' not a pointer type" in ret
+  else if (is_void (get_base t)) then
+    let _ = warning "dereferencing 'void *' pointer" in get_base t
+  else if (is_incomplete (get_base t)) && !(is_void (get_base t)) then
+    error "dereferencing pointer to incomplete type 2"
+  else get_base t;
+     
+(* Process subscript expression.*)
+mlvalue process_subscript t = let ret = get_base t in 
+  if (is_bottom t) then bottom  
+  else if !(is_array t || is_pointer t) then 
+    let _ = error "pointer or array required in subscript expression" in ret
+  else if (is_incomplete (get_base t)) && !(is_void (get_base t)) then
+    error "dereferencing pointer to incomplete type 3"
+  else get_base t ;
+  
+(* Process selection.*)
+mlvalue process_selection t name direct = match t.type with 
+    StructT(sn,_,_) | UnionT(sn,_,_) -> 
+      let st = lookup StructureTypeReference(bottom,sn) in
+        if (is_complete st) then get_member_type st name
+        else 
+          let msg = if direct then "request for member in incomplete type"
+                    else "dereferencing pointer to incomplete type" in
+            error msg        
+  | _ -> error "request for member '" ^ name ^ 
+               "' in something that is no struct or union" ;  
+  
+(** process enumerator list *)
+mlvalue process_enums nl val = match nl with
+   []     -> []
+ | x::xs  -> 
+   let newval = analyze_enumerator x val and
+       id = begin match x with
+                Enumerator(s,_) -> s
+              | _ -> bottom  
+            end in
+   let et = {bottom with type = EnumeratorT(id,{bottom with type = IntT},
+                                            newval - 1)} in
+               (et) :: (process_enums xs newval) ; 
+
+(** Define function **)
+mlvalue c_define (n: Node 'a) (name: string) (t: type) =   
+  if !(is_defined n) then let _ = define n t in t
+  else let val = lookup n in 
+    if (is_extern val || is_static val) then
+      if (is_extern t) then 
+        let ret = compose val t in              
+          if (is_not_bottom ret) then 
+            let _ = redefine n ret in ret
+          else bottom                   
+      else let _ = redefine n t in t
+    else
+      if (is_defined_locally n) then 
+        let ty = lookup_locally n in
+        let pos = ty.position in
+          if !(is_function ty) && (is_complete ty) && !(is_top n) then
+           let _ = if (is_struct_union ty) then
+                     error "redefinition of " (*^ (get_id n)*)
+                   else 
+                     let _ = error "redeclaration of " ^ name and
+                         _ = error "previous declaration of '" ^ name ^ 
+                             "' was here" at pos  in bottom 
+              in t
+          else let _ = redefine n t in t  
+      else let _ = redefine n t in t ;
+      
+(** Ensure the current node is the descendant of a loop or switch *)
+mlvalue ensure_in_loop_or_switch n =  
+  require (is_not_bottom (ancestor (DoStatement _))) || 
+          (is_not_bottom (ancestor (WhileStatement _))) ||
+          (is_not_bottom (ancestor (ForStatement _))) ||
+          (is_not_bottom (ancestor (SwitchStatement _)))  
+    error "not within a loop or switch" at n in voidt ;
+
+(** Ensure the current node is the descendant of a loop.*)
+mlvalue ensure_in_loop n = 
+  require (is_not_bottom (ancestor (DoStatement _))) ||
+          (is_not_bottom (ancestor (WhileStatement _))) ||
+          (is_not_bottom (ancestor (ForStatement _))) 
+    error "not within a loop" at n in voidt ;
+
+(** Ensure the current node is the decendant of a switch statement*)  
+mlvalue ensure_in_switch n = 
+  require (is_not_bottom (ancestor (SwitchStatement _))) 
+    error "not within a switch statement" at n in voidt ;
+
+(* Check if a declaration is in the top scope. *)
+mlvalue is_top n = match n with _ -> is_bottom (ancestor (CompoundStatement _));
+  
+(* Process assignments. *)
+mlvalue processAssignment init t1 op t2 = 
+  let ret = if (init) && (is_const t1) then {t1 with value = t2.value}
+            else t1 and
+      r1 = pointerize t1 and      
+      r2 = pointerize t2 in  
+  if (is_bottom t1) || (is_bottom t2) then bottom
+  else if (is_arithmetic r1 && is_arithmetic r2) then ret 
+  else if (is_void r2) && !(String.starts_withi op "return") then
+    let _ = error "void value not ignored as it ought to be in " ^ op in t1   
+  else if (is_integer r1 && is_pointer r2) then
+        if (is_char r1) then t1 
+        else let _ = warning "makes integer from pointer without a cast in " 
+                             ^ op in ret 
+  else if (is_pointer r1 && is_integer r2) then
+    let _ = if !(zero r2) && !(is_array t1) then
+              warning "makes pointer from integer without a cast in " ^ op 
+              in ret
+  else if (init && is_array t1 && is_array t2) then ret            
+  else if (is_pointer r1  && is_pointer r2) then
+    (*Check signedness here*)
+    let b1 = get_base r1 and b2 = get_base r2 in
+    if (is_void b1) || (is_void b2) || (pointer_equals r1 r2) || 
+       (is_arithmetic b1 && is_arithmetic t2) then 
+      let _ = if !(is_string t2) && !(has_qualifiers b1 b2) then
+                warning op ^ " discards qualifiers from pointer target type" 
+        in t1
+    else if (is_arithmetic b1) && (is_arithmetic b2) &&
+             (equal_ignore_signedness b1 b2) then
+      let _ = warning "pointer targets in " ^ op ^ " differ in signedness" in t1 
+    else let _ = warning "incompatible pointer types in " ^ op in t1              
+  
+  else if (type_match t1 t2) then t1
+  else let _ = error "incompatible types in " ^ op in t1 ;  
+
+(* Process arguments.*)
+mlvalue processArguments (tl: type list) (elt: type list) is_var = 
+  let _ = if !(is_var) && (List.length tl > List.length elt) then
+            error "too few arguments to function"
+          else if !(is_var) && (List.length tl < List.length elt) then
+            error "too many arguments to function" in
+  processArgumentsHelper tl elt 1 ;
+  
+mlvalue processArgumentsHelper (tl: type list) (elt: type list) index =
+  match tl with
+      [] -> bottom
+    | x::xs -> let op = "passing argument " ^ (String.itos index) in
+      if (is_bottom elt) || (List.is_empty elt) then bottom
+      else let _ = processAssignment false x op (List.head elt) in
+             processArgumentsHelper xs (List.tail elt) (index + 1);
+              
+(* Check if a function has variable arguments. *)
+mlvalue is_var_args ft = if (is_bottom ft.var_args) then false
+                         else (ft.var_args) ;
+
+(* Check if a function has an old stype. *)
+mlvalue is_old_stype ft = (is_not_bottom ft.old_style) ;
+        
+(* Define identifier list.*)
+mlvalue define_id_list strl = match strl with
+    [] -> []
+  | x::xs -> 
+    let t = if !(is_defined_locally PrimaryIdentifier(x)) then
+              let _ = define PrimaryIdentifier(x) {bottom with type = IntT} in
+                 {bottom with type = IntT}
+            else lookup_locally PrimaryIdentifier(x) in     
+      t::(define_id_list xs) ;
+  
+(* Redefine labels in function scope or in block.*)
+mlvalue define_labels lbl val = match lbl with
+    [] -> bottom
+  | x::xs -> 
+    let name = x.label_name in
+    let _ = redefine LabeledStatement(NamedLabel(name,bottom),bottom)
+                     {bottom with type = LabelT(name), initialised = val} in
+      define_labels xs val ;
+      
+(* Process array declarator. *)
+mlvalue processArray t n = 
+  if (is_bottom n) then
+    {bottom with type = ArrayT(t,Incomplete), storage = t.storage}
+  else match n with
+      VariableLength -> 
+        if (is_not_bottom (ancestor (ParameterDeclaration _))) then
+          error "'[*]' in non-parameter array declarator" at n
+        else {bottom with type = ArrayT(t,VarLength(Unknown)),
+                          storage = t.storage}
+    | _ ->
+      let st = analyze_expression n in
+      if (is_bottom st) then bottom
+      else 
+        let _ = ensure_integer st "array index" and
+            size = get_int st in            
+        let _ = if (is_const st) && (size < 0) then
+                  error "size of array is negative" in    
+          {bottom with type = ArrayT(t,Fixed(size)), storage = t.storage} ; 
+                                  
+(*************************** Type helper functions ****************************)
+(** zero *)
+mlvalue zero t = if (is_bottom t.value) then false
+                 else match t.value with
+   IValue _ -> if (get_int t) = 0 then true else false
+ | FValue _ -> if (get_float t = 0.0) then true else false
+ | _ -> false ;
+ 
+(* Value equals.*)
+mlvalue value_equals t1 t2 = 
+  if (is_bottom t1.value) || (is_bottom t2.value) then bottom
+  else match (t1.value, t2.value) with
+      (IValue(i1),IValue(i2)) -> i1 = i2
+    | (FValue(f1),FValue(f2)) -> f1 = f2
+    | _ -> false;   
+ 
+(* *)
+mlvalue pointer_equals t1 t2 = type_match (get_base t1) (get_base t2) ;
+
+(* Check qualifiers.*)
+mlvalue has_qualifiers t1 t2 =
+  if (is_bottom t2.qualifiers) then true
+  else if (List.is_empty t2.qualifiers) then true
+  else if (is_bottom t1.qualifiers) then false
+  else check_qualifiers t1.qualifiers t2.qualifiers;
+  
+mlvalue check_qualifiers (quals1: qualifier list) 
+                         (quals2: qualifier list) = match quals2 with
+    [] -> true
+  | x::xs -> (List.mem x quals1) && (check_qualifiers quals1 xs);    
+
+mlvalue type_match t1 t2 = match (t1.type,t2.type) with
+    StructT(s1,i1,_),StructT(s2,i2,_) -> (s1 = s2) && (i1 = i2)
+  | UnionT(s1,_,_),UnionT(s2,_,_) -> s1 = s2
+  | PointerT(tt1),PointerT(tt2) -> type_match tt1 tt2
+  | FunctionT(r1,_),FunctionT(r2,_) -> type_match r1 r2
+  | _ -> t1.type = t2.type ;
+
+(* get the base type of a pointer or array type *)
+mlvalue get_base t = match t.type with 
+   PointerT(t1) -> t1
+ | ArrayT(t1, _) -> t1
+ | _ -> t ;
+
+(* get the type of the member names s form the structure *)
+mlvalue get_member_type t s = match t.type with 
+    StructT(sn,_,ml) | UnionT(sn,_,ml) -> 
+      if (is_bottom ml) then
+        let ty = lookup StructureTypeReference(bottom,sn) in
+        begin match ty.type with
+            StructT(_,_,ll) | UnionT(_,_,ll) -> if (is_bottom ll) then bottom
+                                                else get_member_type_helper ll s 
+          | _ -> bottom
+        end
+      else get_member_type_helper ml s      
+  | _ -> bottom;
+
+mlvalue get_member_type_helper (tl: type list) s = match tl with
+   [] -> bottom
+ | x::xs -> match x.type with 
+      MemberT(str, mt) -> 
+        if (String.starts_with str "member(") && !(is_bitfield mt) then
+          let me = get_member_type mt s in
+            if (is_not_bottom me) then me
+            else get_member_type_helper xs s
+        else if (str = s) then mt
+             else get_member_type_helper xs s
+    | _ -> bottom ;
+
+(**  get the list of parameter types *)
+mlvalue getParameterTypes t = match t.type with
+      FunctionT(_, l) -> l
+    | PointerT(ty) -> getParameterTypes ty
+    | _ -> error "function type required"
+;
+
+(** get an Ivalue *)
+mlvalue get_int t = match t.value with 
+    IValue(i) -> i
+  | _ -> bottom;
+
+(** get a Fvalue *) 
+mlvalue get_float t = match t.value with 
+    FValue(f) -> f
+  | _ -> bottom ;   
+  
+(** Check if a type is packed. *)
+mlvalue is_packed t = if (is_bottom t.gcc_attributes) then false
+                      else check_packed t.gcc_attributes;
+mlvalue check_packed att_list = match att_list with
+   [] -> false
+  | x::xs -> ("packed" = x.att_name) || check_packed xs;
+  
+(** Get aligned attribute.*)
+mlvalue get_aligned t = if (is_bottom t.gcc_attributes) then 0
+                        else check_aligned t.gcc_attributes;
+mlvalue check_aligned att_list = match att_list with
+    [] -> 0
+  | x::xs -> if ("aligned" = x.att_name) then
+               if (is_bottom x.att_value) then 0
+               else begin match x.att_value with
+                        IValue(i) -> i
+                      | _ -> 0  
+                    end
+             else check_aligned xs;            
+             
+(* Get alignment. *)
+(* Add checking for natural here.*)
+mlvalue get_alignment t natural = match t.type with
+    StructT(_,_,tl) | UnionT(_,_,tl) | EnumT(_,_,tl) ->
+      if (is_packed t) then 1
+      else let al = get_aligned t in 
+           let max = if (al > 0) then al
+                     else 1 in
+             get_max_alignment max tl
+  | _ ->
+    let al = get_aligned t in
+      if (al > 0) then al
+      else match t.type with
+          VoidT -> Limits.void_align
+        | BoolT -> if natural then Limits.bool_nat_align
+                   else Limits.bool_align
+        | CharT| SCharT| UCharT -> 1
+        | ShortT| UShortT -> if natural then Limits.short_nat_align
+                             else Limits.short_align
+        | IntT | UIntT -> if natural then Limits.int_nat_align
+                          else Limits.int_align
+        | LongT | ULongT -> if natural then Limits.long_nat_align
+                            else Limits.long_align
+        | LongLongT | ULongLongT -> if natural then Limits.long_long_nat_align
+                                    else Limits.long_long_align
+        | FloatT -> if natural then Limits.float_nat_align
+                    else Limits.float_align
+        | DoubleT -> if natural then Limits.double_nat_align 
+                     else Limits.double_align
+        | LongDoubleT -> if natural then Limits.long_double_nat_align
+                         else Limits.long_double_align
+        | FloatComplexT -> if natural then Limits.float_nat_align
+                           else Limits.float_align
+        | DoubleComplexT -> if natural then Limits.double_nat_align
+                            else Limits.double_align
+        | LongDoubleComplexT -> if natural then Limits.long_double_nat_align
+                                else Limits.long_double_align
+        | PointerT _ -> if natural then Limits.pointer_nat_align
+                        else Limits.pointer_align
+        | FunctionT _ -> Limits.function_align
+        | ArrayT(ty,_) -> get_alignment ty true
+        | BitfieldT(ty,_) -> get_alignment ty false
+        | MemberT(_,ty) -> get_alignment ty false
+        | _ -> let _ = error "type without alignment" in 1;
+        
+(* Get max alignment.*)
+mlvalue get_max_alignment max tl = match tl with
+    [] -> max
+  | x::xs -> match x.type with
+                 MemberT(_,ty) ->
+                   begin match ty.type with
+                      BitfieldT(tty,si) -> 
+                        if (si > 0) then
+                          let al = get_alignment tty false in
+                          let new_max = if (al > max) then al
+                                        else max in
+                            get_max_alignment new_max xs            
+                        else get_max_alignment max xs
+                     | _ -> let al = get_alignment ty false in
+                          let new_max = if (al > max) then al
+                                        else max in
+                            get_max_alignment new_max xs        
+                   end         
+               | _ -> bottom ; 
+                         
+(* Get size of some arithmetic types, in bytes. *)
+mlvalue sizeof t = match t.type with
+    VoidT -> Limits.void_size 
+  | BoolT -> Limits.bool_size  
+  | CharT | UCharT | SCharT -> 1
+  | ShortT | UShortT -> Limits.short_size
+  | UIntT | IntT -> Limits.int_size
+  | ULongT | LongT -> Limits.long_size
+  | ULongLongT | LongLongT -> Limits.long_long_size
+  | LongDoubleT -> Limits.long_double_size
+  | PointerT _ -> Limits.pointer_size
+  | DoubleT -> Limits.double_size
+  | FloatT -> Limits.float_size
+  | FloatComplexT -> 2 * Limits.float_size
+  | DoubleComplexT -> 2 * Limits.double_size
+  | LongDoubleComplexT -> 2 * Limits.long_double_size
+  | ArrayT(ty,si) -> begin match si with
+                         Fixed(i) -> i * (sizeof ty)
+                       | _ -> bottom
+                     end   
+  | UnionT(_,_,tl) -> get_max_size 0 tl
+  | StructT(_,_,tl) -> let si = layout 0 (is_packed t) (has_trailing_array t)
+                                       0 0 1 "" tl and
+                           al = get_aligned t in
+                       let max = if (al > 0) then al
+                                 else 1 in
+                       let max_al = if (is_packed t) then max
+                                    else get_max_alignment max tl in
+                       let mod = si % max_al in
+                         if (0 != mod) then si + max_al - mod
+                         else si                                      
+                         
+  | FunctionT _ -> Limits.function_size
+  | BitfieldT(ty,_) -> sizeof ty
+  | MemberT(_,ty) -> sizeof ty
+  | EnumT _ -> Limits.int_size  
+  | _ -> bottom ;
+  
+(* Get max size. *)
+mlvalue get_max_size max tl = match tl with
+    [] -> max
+  | x::xs -> match x.type with
+                  MemberT(_,ty) -> 
+                    let si = sizeof ty in
+                    let new_max = if (si > max) then si
+                                  else max in
+                      get_max_size new_max xs  
+               | _ -> bottom;
+               
+(* Check if a type is a variable-length array.*)
+mlvalue is_var_array t = match t.type with
+    ArrayT(_,si) -> begin match si with
+                        Fixed _ -> false
+                      | _ -> true 
+                    end
+  | _ -> false;
+  
+(* Check var array.*)
+mlvalue check_var_array tl = match tl with
+    [] -> false
+  | x::xs -> match x.type with
+                 MemberT(_,ty) -> is_var_array ty || check_var_array xs
+               | _ -> bottom;
+               
+(* Check if a struct or union has a trailing array.*)
+mlvalue has_trailing_array t = match t.type with
+    UnionT(_,_,tl) -> check_var_array tl
+  | StructT(_,_,tl) ->
+      if (is_bottom tl) || (List.is_empty tl) then false
+      else let t = List.nth tl ((List.length tl) - 1) in
+               is_var_array t
+  | _ -> false;
+  
+(* Get size of a structure. *)
+mlvalue layout res packed has_trailing bit_count bit_size bit_align name
+               (tl: type list) = match tl with
+    [] -> if ("" = name) then res
+          else (0 - 1)
+  | x::xs -> 
+    if (has_trailing) && (1 = List.length tl) then res
+    else
+      let is_last = (has_trailing && (2 = List.length tl)) ||
+                    (1 = List.length tl) and
+          var_align = get_alignment x false in
+      let al = if (packed) then 1
+               else var_align in
+      match x.type with
+          MemberT(me,ty) -> 
+            begin match ty.type with
+                BitfieldT(_,width) ->
+                  let legacy = ("gcc" = Limits.compiler_name) &&
+                               ((Limits.compiler_version_major < 4) ||
+                                ((Limits.compiler_version_major = 4)&&
+                                 (Limits.compiler_version_minor = 0))) in
+                  if (packed && (legacy || 0 != width)) then
+                    let new_bit_count = bit_count + width in
+                      begin 
+                        if (is_last) || !(is_bitfield (List.head xs)) then
+                        let mod = new_bit_count / Limits.char_bits in
+                        let new_res = if (0 != new_bit_count % Limits.char_bits)
+                                        then res + mod + 1
+                                      else res + mod in
+                          layout new_res packed has_trailing 0 0 1 name xs
+                        else layout res packed has_trailing new_bit_count
+                                    bit_size bit_align name xs                 
+                      end  
+                  else 
+                    begin
+                    if (0 = width) then
+                      begin
+                        let new_res = if (0 != bit_count % Limits.char_bits) then
+                                        res + (bit_count / Limits.char_bits) + 1
+                                      else res + (bit_count / Limits.char_bits) 
+                        in let mod = new_res % var_align in
+                           let new_new_res = if (0 != mod) then
+                                               new_res + var_align - mod
+                                             else new_res in
+                        layout new_new_res packed has_trailing 0 0 1 name xs
+                      end
+                    else if (0 = bit_size) then
+                      begin
+                        let new_bit_count = width and
+                            new_bit_size = sizeof x and
+                            new_bit_align = var_align in
+                          if (is_last) || !(is_bitfield (List.head xs)) then
+                            let mod = new_bit_count / Limits.char_bits in
+                            let new_res = 
+                                 if (0 != new_bit_count % Limits.char_bits) then
+                                    res + mod + 1
+                                 else res + mod in
+                              layout new_res packed has_trailing 0 0 1 name xs      
+                          else layout res packed has_trailing new_bit_count
+                                      new_bit_size new_bit_align name xs
+                      end
+                    else if (bit_count + width <= bit_size * Limits.char_bits) 
+                      then
+                      begin
+                        let new_bit_count = bit_count + width in
+                        if (is_last) || !(is_bitfield (List.head xs)) then
+                          let mod = new_bit_count / Limits.char_bits in
+                          let new_res = 
+                               if (0 != new_bit_count % Limits.char_bits) then
+                                 res + mod + 1
+                               else res + mod in
+                            layout new_res packed has_trailing 0 0 1 name xs      
+                        else layout res packed has_trailing new_bit_count
+                                    bit_size bit_align name xs
+                      end
+                    else 
+                      begin
+                        let res1 = res + bit_size in
+                        let mod = res1 % bit_align in
+                        let new_res = if (0 != mod) then 
+                                        res1 + bit_align - mod
+                                      else res1 and
+                            new_bit_count = width and
+                            new_bit_size = sizeof x and
+                            new_bit_align = var_align in
+                          if (is_last) || !(is_bitfield (List.head xs)) then
+                            let mod = new_bit_count / Limits.char_bits in
+                            let new_new_res = 
+                                 if (0 != new_bit_count % Limits.char_bits) then
+                                   new_res + mod + 1
+                                 else new_res + mod in
+                              layout new_new_res packed has_trailing 
+                                     0 0 1 name xs      
+                          else layout new_res packed has_trailing 
+                                new_bit_count new_bit_size new_bit_align name xs
+                            
+                      end
+                    end
+              | _ -> 
+                let mod = res % al in
+                let new_res = if (0 != mod) then res + al - mod
+                              else res in
+                  if ("" != name) then
+                    if (me = name) then new_res
+                    else 
+                      if (String.starts_with me "member(") then
+                        let off = get_offset ty name in
+                        if (off > (0 - 1)) then (new_res + off)
+                        else layout (new_res + (sizeof x)) packed has_trailing 
+                                    0 0 1 name xs 
+                      else layout (new_res + (sizeof x)) packed has_trailing 
+                                    0 0 1 name xs                 
+                  else layout (new_res  + (sizeof x)) packed has_trailing 
+                              0 0 1 name xs 
+                               
+            end
+        | _ -> bottom; 
+        
+(* Check if a type is auto. *)
+mlvalue is_auto t = if (is_bottom t.storage) then true
+                    else match t.storage with
+    ExternS | StaticS -> false
+  | _ -> true ; 
+   
+(* Check if a type is declared with auto.*)
+mlvalue has_auto t = if (is_bottom t.storage) then false
+                     else match t.storage with
+    AutoS -> true
+  | _ -> false ;    
+
+(* Check if a type is declared with register. *)
+mlvalue is_register t = if (is_bottom t.storage) then false
+                        else match t.storage with
+    RegisterS -> true
+  | _ -> false ;
+  
+(* Check if a type is declared with type def. *)
+mlvalue is_typedef t = if (is_bottom t.storage) then false
+                       else match t.storage with
+    TypedefS -> true
+  | _ -> false ; 
+  
+(* Check if a type is declared with extern. *)
+mlvalue is_extern t = if (is_bottom t.storage) then false
+                      else match t.storage with
+    ExternS -> true
+  | _ -> false ; 
+  
+(* Check if a type is declared with static.*)
+mlvalue is_static t = if (is_bottom t.storage) then false
+                      else match t.storage with
+    StaticS -> true
+  | _ -> false ;    
+  
+(** Test if a type is integer type *)
+mlvalue is_integer t = match t.type with
+    CharT | UCharT | SCharT | BoolT | ShortT | UShortT | UIntT  | IntT | 
+    ULongT | LongT | ULongLongT | LongLongT | BitfieldT _ | EnumT _ -> true
+  | _ -> false ;
+
+(* Test if a type is a char type. *)
+mlvalue is_char t = match t.type with
+    CharT | UCharT | SCharT -> true
+  | _ -> false ;
+  
+(* Test if a type is a type of a string literal*)  
+mlvalue is_string t = if (is_bottom t.value) then false
+                      else match t.value with
+                               SValue _ -> true
+                             | _ -> false ;  
+(** Test for bitfield *)
+mlvalue is_bitfield t = if (is_bottom t.type) then false
+                        else match t.type with
+                            BitfieldT _ -> true
+                          | MemberT(_,ty) -> is_bitfield ty
+                          | _ -> false ;
+
+(** Require an integer type. *)
+mlvalue ensure_integer t  op =  
+  if (is_bottom t) || (is_bottom t.type) || (is_integer t) then t
+  else let _ = error "integer required in " ^ op in t;
+ 
+(** is_qualified *)
+mlvalue is_qualified t = if (is_bottom t.qualifiers) then false
+                         else if ((List.length t.qualifiers) > 0) then true 
+                              else false;
+
+(** Test if this is a float type *)
+mlvalue is_float t = match t.type with
+    FloatT _ | DoubleT _ | LongDoubleT -> true
+  | _ -> false;
+
+(** Test if artithmetic type.*)
+mlvalue is_arithmetic t = is_integer t || is_float t || is_complex t;
+
+(* Test if complex type. *)
+mlvalue is_complex t = match t.type with
+    FloatComplexT | DoubleComplexT | LongDoubleComplexT | ComplexT -> true
+  | _ -> false ;
+
+(** Require an arithmetic type *)
+mlvalue ensure_arithmetic t op = 
+  let _ = guard (is_arithmetic t) error "arithmetic value required in " ^ op 
+    in t;
+
+(** Test if this type is scalar *) 
+mlvalue is_scalar t = is_arithmetic t || is_pointer t || is_array t;
+
+(** Require a scalar type *)
+mlvalue ensure_scalar t op = 
+  if (is_bottom t) || (is_bottom t.type) || (is_scalar t) then t
+  else let _ = error "scalar required in " ^ op in t;
+  
+
+(** Test if pointer. *)
+mlvalue is_pointer t = match t.type with
+                           PointerT _ -> true
+                         | _ -> false ;
+
+(** *)
+mlvalue to_pointer t = match t.type with
+   PointerT _ -> t
+ | ArrayT _ -> {bottom with type = PointerT(get_base t)}
+ | _ -> bottom ;
+
+(* test for array type *)
+mlvalue is_array t = match t.type with 
+    ArrayT _ -> true
+  | _ -> false;
+
+(*test for fixed sized array *)
+mlvalue is_fixed t = if (is_bottom t.type) then false
+                     else match t.type with
+    ArrayT(_, si) -> begin match si with
+                            Fixed _ -> true
+                          | _ -> false
+                        end    
+  | _ -> false;
+
+(** Require a function type *)
+mlvalue ensure_function t = 
+  guard (is_function t) error "function type required";
+
+(** Test if function type *)
+mlvalue is_function t = if (is_bottom t.type) then false
+                        else match t.type with
+    FunctionT _ -> true
+  | _ -> false;
+
+(* check for constant qualifier *)
+mlvalue is_const t = let quals = t.qualifiers in 
+  if (is_bottom quals) then false 
+  else List.mem ConstQ quals;
+
+(** test if void type *)
+mlvalue is_void t = match t.type with
+    VoidT _ -> true
+  | _ -> false;
+
+(** Test if l value. *)
+mlvalue is_lvalue t = !(is_void t) && !(is_function t);
+
+(** Test for modifiable lvalue *)
+mlvalue is_modifiable_lvalue t = (is_lvalue t) && !(is_const t);
+
+(** ensure modifiable lvalue *)
+mlvalue ensure_modifiable_lvalue t = 
+  if (is_bottom t) then t
+  else if !(is_modifiable_lvalue t) && !(is_pointer t) then
+     let _ = error "modifying read-only operand" in t;
+    
+
+(** Test for aggregate type *)
+mlvalue is_aggregate t = match t.type with 
+    ArrayT _ | StructT _ | UnionT _ -> true
+  | _ -> false;
+  
+(* Test for struct or union types.*)
+mlvalue is_struct_union t = match t.type with
+    StructT _ | UnionT _ -> true
+  | _ -> false;
+
+mlvalue is_enum t = match t.type with EnumT _ -> true
+                                     | _ -> false;
+
+(* Test for anonymous struct or union. *)
+mlvalue is_anonymous t = if (is_bottom t.type) then false
+                         else match t.type with
+    StructT(s,_,_) -> String.starts_with s "struct("
+  | UnionT(s,_,_) -> String.starts_with s "union("
+  | _ -> false;   
+
+(** Test if complete. *)
+mlvalue is_complete t = !(is_incomplete t);
+
+(** *)
+mlvalue ensure_complete t = 
+  let _ = guard (is_complete t) error "complete type required" in t;
+  
+(** Get the return type of a function *)
+mlvalue get_return_type t = match t.type with 
+     FunctionT(r, _) -> r
+   | PointerT(ty) -> get_return_type ty 
+   | _ -> bottom;
+
+(** Test if incomplete *)
+mlvalue is_incomplete t = if (is_bottom t.type) then false
+                          else match t.type with
+   VoidT                   -> true
+ | ArrayT(b,size) -> if (is_bottom size) then false
+                     else begin match size with
+                              Incomplete -> !(is_typedef b)
+                            | _ -> false
+                          end    
+ | StructT(s,_,ty) | UnionT(s,_,ty) -> 
+    if (is_bottom ty) then
+     let tt = lookup StructureTypeReference(bottom,s) in
+       match tt.type with
+           StructT(_,_,ttt) | UnionT(_,_,ttt) -> is_bottom ttt
+         | _ -> bottom  
+    else false  
+ | EnumT(_,_,tl) -> (is_bottom tl)   
+ | _ -> false ;
+ 
+(* Check if 2 number (arithmetic) types are equals ignoring signedness.*)
+mlvalue equal_ignore_signedness t1 t2 = match t1.type with
+    CharT | UCharT | SCharT -> 
+      t2.type = CharT || t2.type = UCharT || t2.type = SCharT 
+  | ShortT | UShortT -> t2.type = ShortT || t2.type = UShortT
+  | UIntT | IntT -> t2.type =  UIntT || t2.type = IntT
+  | ULongT | LongT -> t2.type = LongT || t2.type = ULongT
+  | ULongLongT | LongLongT -> t2.type = LongLongT || t2.type = ULongLongT
+  | _ -> t1.type = t2.type ;
+
+(* Compose 2 types. *)
+mlvalue compose t1 t2 = if (type_match t1  t2) then t1 else
+  match t1.type,t2.type with
+      (ArrayT(b1,s1), ArrayT(b2,s2)) ->
+         let ret = compose b1 b2 in
+           if (is_not_bottom ret) then
+             begin match s1, s2 with
+                 (VarLength _ , VarLength _)  -> t1
+               | (Fixed(i1), Fixed(i2))  -> if (i1 = i2) then t1
+               | (Fixed _, _ )  -> t1
+               | (_, Fixed _) -> t2
+               | _ -> t1
+             end
+    | _ -> t1 ;   
+    
+(* Pointerize a type.*)
+mlvalue pointerize t = match t.type with
+    ArrayT _ -> {bottom with type = PointerT(get_base t)}
+  | FunctionT _ -> {bottom with type = PointerT(t)}
+  | MemberT(_,ty) -> pointerize ty
+  | _ -> t ;
+  
+(* Promote type.*)
+mlvalue promote t = match t.type with
+    CharT | UCharT | SCharT | ShortT | UShortT | IntT -> 
+      {bottom with type = UIntT}
+  | _ -> t ;   
+                                                                                                                                
+(* promote integer types to a common type *)
+mlvalue convert_int t1 t2 = match t1.type, t2.type with
+   (ULongLongT,_) | (_,ULongLongT) -> {bottom with type = ULongLongT}
+ | (LongLongT,_)  | (_,LongLongT)  -> {bottom with type = LongLongT}
+ | (ULongT,_)     | (_,ULongT)     -> {bottom with type = LongT}
+ | (LongT,_)      | (_,LongT)      -> {bottom with type = ULongT}
+ | (UIntT,_)      | (_,UIntT)      -> {bottom with type = UIntT}
+ | (IntT,_)       | (_,IntT)       -> {bottom with type = IntT}
+ | (UShortT,_)    | (_,UShortT)    -> {bottom with type = UShortT}
+ | (ShortT,_)     | (_,ShortT)     -> {bottom with type = ShortT}
+ | (CharT,_)      | (_,CharT)      -> {bottom with type = CharT}
+ | _                               -> {bottom with type = IntT} ;
+
+(* convert arithmetic operands to common type *) 
+mlvalue arith_convert t1 t2 = 
+  let _ = ensure_arithmetic t1 and 
+      _ = ensure_arithmetic t2 in
+    if (LongDoubleT = t1.type) || (LongDoubleT = t2.type) then
+      {bottom with type = LongDoubleT}
+    else if (DoubleT = t1.type) || (DoubleT = t2.type) then
+          {bottom with type = DoubleT}
+    else if (FloatT = t1.type) || (FloatT = t2.type) then
+          {bottom with type = FloatT}
+    else if (is_integer t1 && is_integer t2) then convert_int t1 t2 
+    else if (type_match t1 t2) then t1
+    else t1;
+    
+(* Resolve a type. *)
+mlvalue resolve t = match t.type with
+    MemberT(_,ty) -> resolve ty
+  | _ -> t ;
+            
+(* Process cast expression. *)
+mlvalue processCast t1 t2 =
+  if (BoolT = t1.type) && !(is_scalar t2) then
+    let _ = error "scalar required to cast to boolean" in t1
+  else {t1 with value = t2.value};
+
+(* Combine qualifiers.*)
+mlvalue combine_qualifiers (q1: qualifier list) (q2: qualifier list) = 
+  if (is_bottom q1) && (is_bottom q2) then bottom
+  else if (is_bottom q1) then q2
+  else if (is_bottom q2) then q1
+  else List.union q1 q2;
+  
+(* Combine attributes.*)
+mlvalue combine_attributes (a1: gcc_attribute list) (a2: gcc_attribute list) = 
+  if (is_bottom a1) && (is_bottom a2) then bottom
+  else if (is_bottom a1) then a2
+  else if (is_bottom a2) then a1
+  else List.append a1 a2;  
+
+(* Get size of type. *)
+mlvalue get_size t = match t.type with
+    ArrayT(ty,si) -> 
+     let s1 = begin match si with
+                  Fixed(ret) -> ret
+                | Incomplete -> Limits.array_max
+                | _ -> bottom  
+              end and
+         s2 = get_size ty in
+     if (is_bottom s1 || is_bottom s2) then bottom
+     else if (s1 = Limits.array_max || s2 = Limits.array_max) then
+       Limits.array_max
+     else s1 * s2                           
+  | StructT(_,_,tl) -> List.length tl
+  | UnionT _ -> 1
+  | _ -> 1;
+
+(** Kludge... surely there must be a better way to do this? *)
+mlvalue flattenListTypes l = if (is_bottom l) then []
+                             else match l with
+  [] -> []
+| x::xs -> 
+   begin match x.type with 
+       ListT(lt) -> List.append lt (flattenListTypes xs)
+     | _ -> flattenListTypes xs
+   end ; 
+                                                                                              
+(***************************** Other helper functions *************************)
+(* Check if a label record exists in a list of label records. *)  
+mlvalue label_exists l ll = if (is_bottom ll) then false
+                            else match ll with
+    [] -> false
+  | x::xs -> if (x.label_name = l.label_name) then true
+             else label_exists l xs ; 
+            
+(* Union two lists of label records. *)
+mlvalue labels_union lr1 lr2 = if (is_bottom lr2) then lr1
+                               else match lr2 with
+    [] -> lr1 
+  | x::xs -> if (label_exists x lr1) then
+               labels_union lr1 xs
+             else labels_union (List.append lr1 [x]) xs ;
+             
+(* Label record lists subtraction. *)
+mlvalue labels_subtraction lr1 lr2 res = if (is_bottom lr1) then res
+                                         else match lr1 with
+    [] -> res
+  | x::xs -> if (label_exists x lr2) then
+               labels_subtraction xs lr2 res
+             else labels_subtraction xs lr2 (List.append res [x]) ;   
+
+(* parse a c integer constant *)
+mlvalue parse_int s = 
+  if (String.starts_withi s "0x")    then 
+    let news = String.substring s 2 in String.stoi news 16 
+  else if (String.starts_with s "0") then String.stoi s 8
+  else String.stoi s 10 ;   
+  
+(* Extract the identifier from a declarator. *)
+mlvalue get_id_declarator n = match n with
+  | SimpleDeclarator(s)                 -> s
+  | PointerDeclarator(_,b)              -> get_id_declarator b
+  | ArrayDeclarator(a,_,_)              -> get_id_declarator a
+  | FunctionDeclarator(a,_)             -> get_id_declarator a
+  | AttributedDeclarator(_,b,_)         -> get_id_declarator b
+  | _ -> error "Unable to extract identifier from " ^ node_name n ;
+  
+(**************************** Process labels **********************************)
+
+(* Check if a label is used.*)
+mlvalue is_used s st = if (is_bottom st) then false
+                       else match st with
+  | CompoundStatement(l) -> is_used_in_list s l    
+  | WhileStatement(e, cs) | DoStatement(cs,e) | SwitchStatement(e, cs) |
+    IfStatement(e, cs) -> is_used_expr s e || is_used s cs    
+  | ForStatement(ic,e1,e2,cs) ->
+      let b = if (is_extern_declaration ic) then is_used_decl s ic
+              else is_used_expr s ic in
+        b || is_used_expr s e1 || is_used_expr s e2 || is_used s cs                
+  | LabeledStatement(_,cs) -> is_used s cs  
+  | IfElseStatement(e, cs1, cs2) -> 
+      is_used_expr s e || is_used s cs1 || is_used s cs2 
+  | ReturnStatement(e) | ExpressionStatement(e) -> is_used_expr s e
+  | GotoStatement(_,PrimaryIdentifier(str)) -> str = s
+  | _ -> false ;
+  
+(* Check if a label is used in an expression.*)
+mlvalue is_used_expr s n = if (is_bottom n) then false
+                           else match n with
+    AdditiveExpression(e1,_,e2) | RelationalExpression(e1,_,e2) | 
+    AssignmentExpression(e1,_,e2) | CommaExpression(e1,e2)  |
+    LogicalOrExpression(e1,e2) | LogicalAndExpression(e1,e2) |
+    BitwiseOrExpression(e1,e2) | BitwiseXorExpression(e1,e2) |
+    BitwiseAndExpression(e1,e2) | EqualityExpression(e1,_,e2) |
+    ShiftExpression(e1,_,e2) | MultiplicativeExpression(e1,_,e2) |
+    SubscriptExpression(e1,e2)
+      -> is_used_expr s e1 || is_used_expr s e2
+      
+  | ConditionalExpression(e1,e2,e3) ->
+      is_used_expr s e1 || is_used_expr s e2 || is_used_expr s e3  
+         
+  | LabelAddressExpression(str) -> str = s 
+  
+  | FunctionCall(e,ExpressionList _ as el) ->
+      let nl = match el with
+                  ExpressionList(res) -> res
+                | _ -> bottom in  
+     is_used_expr s e || is_used_in_list s nl
+     
+  | InitializerList(l) -> is_used_in_list s l
+  
+  | CastExpression(_,e) | CompoundLiteral(_,e) | UnaryMinusExpression(e) |
+    UnaryPlusExpression(e) | LogicalNegationExpression (e) |
+    BitwiseNegationExpression(e) | AddressExpression(e) |
+    IndirectionExpression(e) | PreincrementExpression(e) |
+    PredecrementExpression(e) | ExtensionExpression(e) |
+    DirectComponentSelection(e,_) | IndirectComponentSelection(e,_) |
+    PostincrementExpression(e) | PostdecrementExpression(e) |
+    VariableArgumentAccess(e,_) | OffsetofExpression(_,e)
+      -> is_used_expr s e
+      
+  | SizeofExpression(et) | AlignofExpression(et) ->
+      begin match et with
+          TypeName _ -> false
+        | _ -> is_used_expr s et
+      end 
+  | StatementAsExpression(st) -> is_used s st
+         
+  | _ -> false; 
+  
+mlvalue is_used_decl s n = if (is_bottom n) then false
+                           else match n with    
+    Declaration(_,_,InitializedDeclaratorList(dl)) -> is_used_in_list s dl
+  | _ -> false ;  
+  
+(* Check if a label is used in a list of nodes.*)
+mlvalue is_used_in_list s (nl: Node 'a list) = 
+  if (is_bottom nl) then false
+  else let use = is_used_generic s in
+         List.exists use nl;
+            
+(* Check is a label is used in a node.*)
+mlvalue is_used_generic s (n: Node 'a) = 
+  if (is_extern_declaration n) then is_used_decl s n
+  else if (is_init_decl_list n) then
+    let dl = match n with
+                InitializedDeclaratorList(res) -> res
+              | _ -> bottom in
+      is_used_in_list s dl
+  else if (is_init_decl n) then 
+    let init = match n with
+                   InitializedDeclarator(_,_,_,_,res) -> res
+                 | _ -> bottom in
+      is_used_expr s init
+  else if (is_init_entry n) then
+    let init = match n with
+                   InitializerListEntry(_,res) -> res
+                 | _ -> bottom in
+      is_used_expr s init
+  else if (is_statement n) then is_used s n                 
+  else is_used_expr s n ;
+  
+(* Check if a node is of type external_declaration.*)
+mlvalue is_extern_declaration n: Node 'a = if (is_bottom n) then false
+                                           else match n with
+    Declaration _ | FunctionDefinition _ | AssemblyDefinition _ |
+    EmptyDefinition -> true
+  | _ -> false;
+  
+mlvalue is_statement n: Node 'a = if (is_bottom n) then false
+                                  else match n with
+    ExpressionStatement _ | CompoundStatement _ | IfElseStatement _ |
+    IfStatement _ | WhileStatement _ | DoStatement _ | ForStatement _ |
+    SwitchStatement _ | LabeledStatement _ | BreakStatement | 
+    ContinueStatement | ReturnStatement _ | GotoStatement _ | 
+    AssemblyStatement _ | EmptyStatement -> true
+  | _ -> false;      
+  
+mlvalue is_init_decl_list n: Node 'a = if (is_bottom n) then false 
+                                       else match n with
+    InitializedDeclaratorList _ -> true
+  | _ -> false ; 
+   
+mlvalue is_init_decl n: Node 'a = if (is_bottom n) then false
+                                  else match n with
+    InitializedDeclarator _ -> true
+   | _ -> false ; 
+   
+mlvalue is_init_entry n : Node 'a = if (is_bottom n) then false
+                                    else match n with
+    InitializerListEntry _ -> true
+  | _ -> false ;      
+ 
+(* Check for defined labels. *)
+mlvalue check_defined_labels sl n = match sl with
+    [] -> bottom
+  | x::xs -> let name = x.label_name and
+                 nod = x.label_position in               
+             let _ = if !(is_used name n) then
+                      warning "label '" ^ name ^ "' defined but not used" at nod
+               in check_defined_labels xs n ;
+             
+mlvalue check_declared_labels st sl = match sl with
+    [] -> bottom
+  | x::xs ->
+      let name = x.label_name and
+          nod = x.label_position in
+      let ty = lookup NamedLabel(name,bottom) in                
+      let _ = if !(ty.initialised) then
+                warning ("'" ^ name ^ " declared but not defined") at nod
+              else if !(is_used name st) then
+                let nod = ty.position in 
+                warning ("'" ^ name ^ " defined but not used") at nod                
+       in check_declared_labels st xs ;                                 
+
+(** Find, define, and check for duplicate labels (in statements). *)
+mlvalue find_labels res n = if (is_bottom n) then res
+                            else match n with
+ | CompoundStatement(l) ->
+     let local_labels = find_local_labels l in 
+     let _ = if !(List.is_empty local_labels) then 
+               define_labels local_labels false in
+     let sl = find_labels_in_list l in
+     let _ = check_declared_labels n local_labels in
+     let new_labels = labels_subtraction sl local_labels [] in
+       labels_union res new_labels
+         
+ | IfStatement(_, cs) | WhileStatement(_, cs) | DoStatement(cs,_) |
+   SwitchStatement(_, cs) | ForStatement(_,_,_,cs) 
+   -> labels_union res (find_labels [] cs)
+ | ExpressionStatement(e) -> List.union res (find_labels_expr e [])
+ | IfElseStatement(_, cs1, cs2) -> 
+     let sl1 = find_labels [] cs1 and
+         sl2 = find_labels [] cs2 in
+       labels_union res (List.union sl1 sl2)
+        
+ | LabeledStatement(NamedLabel _ as nlb, st) ->
+     let s = match nlb with
+                 NamedLabel(str,_) -> str
+               | _ -> bottom and 
+         sl = find_labels [] st in
+     let ret = labels_union res sl in 
+     if !(is_defined n) then 
+       let _ = define n {bottom with type = LabelT(s), initialised = true,
+                                     position = n} in
+         labels_union ret [{label_name = s, label_position = n}]
+     else 
+       let t = lookup n in 
+       if !(t.initialised) then
+         let _ = redefine n {bottom with type = LabelT(s), 
+                               initialised = true, position = n} in
+           labels_union ret [{label_name = s, label_position = n}]                              
+       else 
+         let pos = t.position in
+         let _ = error "duplicate label '" ^ s ^ "'" and
+             _ = error "previous definition of '" ^ s ^ "' was here **" at pos 
+           in ret
+           
+  | LabeledStatement(_,st) ->
+      labels_union res (find_labels [] st)        
+  | _ -> res ; 
+  
+(* Find labels in expressions.*)
+mlvalue find_labels_expr n res = if (is_bottom n) then res
+                                 else match n with    
+    StatementAsExpression(cs) -> labels_union res (find_labels [] cs)
+  | ConditionalExpression(_,e1,e2) ->          
+     let sl1 = find_labels_expr e1 [] and
+         sl2 = find_labels_expr e2 [] in
+       labels_union res (labels_union sl1 sl2)      
+  | _ -> res ;
+  
+(* Find local label declaration. *)
+mlvalue find_local_labels nl = 
+  if (is_bottom nl) then []
+  else let ll = List.map process_local_label_node nl in
+         List.flatten ll;
+
+(* Process a LocalLabelDeclaration node. *)
+mlvalue process_local_label_node no = match no with
+    LocalLabelDeclaration(sl) -> process_local_labels sl no []
+  | _ -> [];
+             
+(* Process local labels in declaration.*)             
+mlvalue process_local_labels sl (loc: Node 'a) res = match sl with
+    [] -> res
+  | x::xs ->               
+     let _ = redefine NamedLabel(x,bottom) {bottom with type = LabelT(x),
+                                         initialised = false, position = loc} in           
+       process_local_labels xs loc (List.union res [{label_name = x,
+                                                     label_position = loc}]) ;
+  
+(* Flattern string list list. *)
+mlvalue find_labels_in_list nl = 
+  if (is_bottom nl) then []
+  else let fu = find_labels [] in
+       let ll = List.map fu nl in
+         List.flatten ll; 
+    
+(*************************** Process compound initializer *********************)
+
+(* Process initializer at top level. *)
+mlvalue analyze_initializer n t =
+  if (is_bottom t) then bottom
+  else match n with
+      InitializerList(l) ->
+        if (List.is_empty l) then t
+        else if (is_array t && is_char (get_base t)) then
+          let size = get_size t in
+            if (List.length l > 1) && (List.length l > size) then
+              error "excess elements in char array initializer"
+            else t  
+        else 
+          process_initializer n t    
+    | _ -> processAssignment true t "initializer" (analyze_expression n);
+    
+(* Recursively process initializer. *)
+mlvalue process_initializer n t =
+   match n with
+    InitializerList(nl) ->
+      let _ = process_init_list t 1 nl in t
+  | _ -> bottom ;
+  
+(* Process a list of init entries. *)
+mlvalue process_init_list t index el = if (is_bottom el) then voidt
+  else match el with
+    [] -> voidt
+  | _::xs -> let rt = process_init_entry t index el in
+               if (is_bottom rt) then voidt
+               else process_init_list t (index + 1) xs ;
+               
+(* Process an intializer entry. *)
+mlvalue process_init_entry t index el = 
+  let en = List.head el in
+  match en with
+    InitializerListEntry(ds,init) ->
+      let element = process_designation t index ds el in
+      if (is_bottom element) then bottom
+      else
+        begin match init with
+            InitializerList _ -> 
+              if !(is_aggregate element) then element                
+              else process_initializer init element                         
+          | _ -> 
+            let rt = analyze_expression init in
+            if !(is_struct_union element) && (is_struct_union rt) then
+              let new_rt = resolve_element rt 0 in
+                processAssignment true element "initializer" new_rt
+            else
+              let new_element = if !(is_aggregate rt) then
+                                   resolve_element element (index - 1)
+                                else element in   
+                processAssignment true new_element "initializer" rt  
+        end
+  | _ -> bottom ;                           
+    
+mlvalue resolve_element element index = 
+  if (is_struct_union element) then
+    resolve_element (get_index_type element index) 0
+  else if (is_array element) then
+    resolve_element (get_base element) 0
+  else element ;
+  
+(* Process designation. *)
+mlvalue process_designation base index des nl =
+  let new_base = if (is_struct_union base) && (1 = get_size base) &&
+                    (is_flat_init_list nl) then
+                   get_index_type base 0 
+                 else base in
+  if (is_bottom des) then
+    let si = get_size (new_base) in
+    if (si > 0) && (index > si) then
+      let _ = warning "excess elements in initializer" at des and
+          _ = show_excess_error nl in bottom
+    else get_index_type new_base (index - 1)
+  else               
+    match des with
+        Designation(nl) -> process_des_list base index nl           
+      | ObsoleteArrayDesignation(_,n1,n2) ->
+          let element = get_index_type new_base (index - 1) in 
+          let res = process_array_des n1 n2  in
+          if res then element
+      | ObsoleteFieldDesignation(str) -> process_field_des base str;
+      
+(* Process array designarot. *)
+ mlvalue process_array_des n1 n2 = 
+   let t1 = analyze_expression n1 and
+       t2 = analyze_expression n2 in
+   let _ = if !(is_integer t1) || ((is_not_bottom n2) && !(is_integer t2)) then
+             error "array index in initializer not of integer type" at n1 and
+       _ = if !(is_const t1) || ((is_not_bottom n2) && !(is_const t2)) then
+             error "nonconstant array index in initializer" at n1 in
+   let size = get_int t1 in 
+       if (is_not_bottom size) && (0 > size) then
+         let _ = error "negative array index in initializer" in false
+       else true;
+       
+(* Process field designator. *)
+ mlvalue process_field_des base str = 
+    if !(is_struct_union base) then
+      let _ = error "field name not in struct or union initializer" in bottom
+    else let member = get_member_type base str in
+      if (is_bottom member) then
+        let _ = error "unknown field " ^ str in bottom
+      else member;    
+      
+(* Process designator list.*)
+mlvalue process_des_list base index nl = match nl with
+    [] -> base
+  | x::xs -> 
+     match x with
+       Designator(".", PrimaryIdentifier(str),_) -> 
+         let new_base = process_field_des base str in
+         if (is_bottom new_base) then bottom
+         else process_des_list (resolve new_base) index xs         
+      | Designator("[",n1,n2) ->
+          let element = get_index_type base (index - 1) in 
+          let res = process_array_des n1 n2 in 
+          if res then element          
+      | _ -> error "Unsupport designator list";
+      
+(* Check is a list of initializers is flat.*)
+ mlvalue is_flat_init_list nl = match nl with
+     [] -> true
+   | x::xs -> match x with
+                  InitializerListEntry(_, InitializerList _) -> false
+                | _ -> is_flat_init_list xs ; 
+                  
+(* Get a member type by index.*)
+mlvalue get_index_type t index = match t.type with
+    ArrayT _ -> get_base t
+  | StructT(_,_,tl) | UnionT(_,_,tl) ->
+      if (is_bottom tl) then bottom
+      else if (index >= List.length tl) then voidt
+      else let member = List.nth tl index in resolve member
+  | _ -> t ;  
+  
+(* Show excess warning in initializer list.*)
+mlvalue show_excess_error nl = match nl with
+    [] -> bottom
+  | x::xs -> let _ = match x with
+                       InitializerListEntry(_,InitializerList _) -> 
+                         error "extra brace group at end of initializer" at x
+                     | _ -> bottom in
+              show_excess_error xs ;   

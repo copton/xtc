@@ -1,0 +1,308 @@
+<html>
+<head>
+<title>XForm Release History and Notes</title>
+<link rel="stylesheet" href="http://cs.nyu.edu/rgrimm/bedrock.css"
+  type="text/css">
+</head>
+<body>
+<h1 class="title">XForm Release History and Notes</h1>
+
+<dl>
+  <dt>1.8.?? (2/15/07)</dt>
+  <dd>Minor bug fix release. 
+     <p>Bug fixes: 
+        <ul> 
+         <li>  Driver now defaults to one run instead of two.</li>
+         <li>  For expressions double counting bug has been fixed.</li>
+         <li>  Nested new node creation correctly modifies the AST.</li>
+        </ul>
+   
+</dl>
+
+<dl>
+  <dt>1.8.2 (8/31/06)</dt>
+  <dd>Minor feature and bug fix release
+   <p>This release adds minor changes to the XForm grammar along with some bug fixes</p>
+   <dd> 
+   <p>The <b>XForm Grammar</b> has been changed as follows:
+      <ul> 
+      <li>The grammar now supports item removal operations. For example <pre>
+      <code>remove //IfStatement </code></pre> removes all IfStatements from the AST.
+      </li>
+      <li>The grammar now supports addition operations. For example, <pre>
+      <code> add Foo<> to //Bar </code></pre> adds a Foo node as the last child to all
+      Bar nodes.
+      </li>
+
+      </ul> 
+  <p> Bug fixes: 
+     <ul> <li>
+      Bad or out of range predicates no longer cause RuntimeException. Instead empty
+      Sequences are returned.
+     </li></ul>
+</dl>
+
+<dl> 
+  <dt>1.8.0 (6/6/06)</dt>
+  <dd>Major feature and bug fix release. 
+    <p/> This release modifies the XForm driver to improve command line support 
+      for program manipulation. It also adds some useful library functions to 
+      the XForm package. This is aimed at making it easier for users to implement 
+      program transformations using pure XForm. This release also modifies XForm's 
+      grammar and engine to add more functionality and fix minor bugs.
+    <dd> 
+    <p/>The <b>XForm Grammar</b> has been changed as follows: 
+    <ul>
+      <li>The grammar now supports item insertion operations. Two flavours of 
+        insert are supported, &quot;insert before&quot; and &quot;insert after&quot;<br>
+        For example 
+        <pre><code> insert Foo<> before //Bar </code></pre>
+        inserts Foo nodes before all Bar nodes in the AST 
+     
+      <li>XForm now provides an 'differ' operator to determine the logical difference 
+        of two sets. The differ operation returns the elements in the first set 
+        that are not contained in the second<br>
+        For example, the query 
+        <pre><code>//IfStatement differ //IfStatement[ Block ] </code></pre>
+        returns a list of all IfStatements that do not have a Block 
+      <li>Function calls can be used as predicates. example //Block[ last(.) ]<br>
+      <li>Function call arguments can be sequences, strings, or integers<br>
+        <br>
+    </ul>
+    <p />The <b>XForm Engine</b> has changed as follows: 
+    <ul>
+      <li>It is now possible to use expressions as predicates. This feature was 
+        unimplemented in previous versions.<br>
+        For example<br>
+        <pre><code>//IfStatement[ Block ]</code></pre>
+        returns all IfStatement nodes that have a Block child. <br>
+      <li>Nested new Item creation now functions properly<br>
+      <li>Several minor bug fixes<br>
+        <br>
+    </ul>
+    <p />The <b>XForm Driver</b> has changed as follows: 
+    <ul>
+      <li>It is now possible use command line options to specify the parser that 
+        the XForm driver should use. This change is intended to improve XForms 
+        flexibility. For example, a user defines a grammar and generates a parser 
+        for an extension to Java named JExt. JExt is to be desugared to Java using 
+        XForm. Instead of writing a JExtDriver, one can use XForm with the command 
+        options &quot;<i>-parser xtc.lang.JExtParser&quot; </i>and <i>&quot;-unit 
+        CompilationUnit</i>&quot;. The -parser option instructs the driver to 
+        use the JavaExtParser and the -unit option indicates that the program 
+        unit is named <i>CompilationUnit.</i> The -c and -java options are still 
+        available and specify XTC's default C and Java parsers.<br>
+        <br>
+        Additionally the -printer option specifies the printer for pretty-printing 
+        post-query source code. The -printC and -printJava options indicate that 
+        the XForm driver is to use XTC's default JavaPrinter and CPrinter<br>
+        <br>
+        For the example extension JExt, a complete command line for a desugaring 
+        transformation with XForm and printing the resulting Java code could be 
+        <i>&quot;java xtc.xform.Driver -parser xtc.lang.JExtParser -unit CompilationUnit 
+        -printJava jextdesug.xform test.jext&quot;<br>
+        <br>
+        </i>Note: the command line options have changed<i></i> <br>
+        <br>
+      <li>Functionality and command line options for XForm perfomance evaluations 
+        have been added.<br>
+      <li>To take advantage of new tool builiding support provided by xtc, the 
+        XForm Driver has been rewritten to use the xtc.util.Tool class. This rewrite 
+        changes some of the driver's command line options.<br>
+      <li>XForm driver now has default optiosn for manipulating both C and Java 
+        source files. C files are specified with the -c command line option and 
+        Java files with -java.<br>
+        <br>
+    </ul>
+    <p /> <br>
+      The <b>XForm function library</b> has changed as follows: 
+    <ul>
+      <li>Added library functions for string manipulation including: concat(), 
+        substring(), uppercase()<br>
+      <li>Added the lines(), count(), empty(), last(), and subsequence() library 
+        function <br>
+      <li>It is no longer necessary to do explicit imports for built-in Xform 
+        functions. Import statements are still required for user added functions, 
+        however.<br>
+      <li>Library functions can now return Objects instead of Lists. This allows 
+        users to write library functions that return Integer values. These functions 
+        can then be used as predicates in queries.<br>
+        For example, the library function last(.) returns the index of the last 
+        item in a sequence, so the query: 
+        <pre><code>//Block/*[ last(.) ]</code></pre>
+        returns the last child of each Block node in the AST 
+    </ul>
+  <dd> 
+    <p />&nbsp; 
+</dl>
+<dl>
+  <dd> 
+    <p/>The <b>XForm samples</b> set has been changed as follows: 
+    <ul>
+      <li>Added a sample java extension and desugaring transformation to xform/samples/javaproperty. 
+        This extension add C# like properties to Java. It is desugared to Java 
+        using an XForm transformation.<br>
+      <li>Added more example queries to the xform/samples directory. These include 
+        queries to detect coding convention violations in Java code (Find if statements 
+        without braces, for example), and queries to correct some coding conventions 
+        errors (example, add missing braces).
+    </ul>
+  
+</dl>
+<p/>&nbsp;
+<dl>
+  <dt>Pre 1.8.0 Release Notes</dt> 
+<p/>This release introduces several changes to XForm. For more details, see the 
+
+  xtc.xform package notes. 
+
+<ul>
+
+<li>
+
+<p/>
+
+It is now possible to perform logical operations on queries.
+
+</li>
+
+<!-- ======================================================================= -->
+
+<li>
+
+<p/>
+
+As of this release, support for the 
+
+<code>function_directory</code> file has been removed from XForm and a new
+
+mechanism for loading external functions has been introduced.  If you'd like
+
+to use an external function within your query, you must first include an
+
+<code>import</code> statement at the beginning of your query.
+
+</li>
+
+<!-- ======================================================================= -->
+
+<li>
+
+<p/>
+
+In previous versions of XForm, if a query consisted of several comma-separated
+
+expressions, the values of each expression were simply concatenated
+
+into a single list (with null values being ignored) and returned.  Now, the
+
+result of a  list of expressions is a list of the values of each expression.  
+
+Whereas this list isimplicitly flattened within the context of the engine, the
+
+<code>run</code> method will return a list of lists.  Furthermore, the results
+
+of each expression  will provide an implicit focus for the expression that 
+
+follows it.  
+
+
+
+<p/>
+
+For example, the query
+
+    <pre><code>  //IfStatement, CompoundStatement
+</code></pre>
+
+will return a list of two lists.  The first list will contain
+
+all <code>IfStatement</code> nodes in the AST, whereas the second list will 
+
+contain all <code>CompoundStatement</code> children of 
+
+<code>IfStatement</code> nodes.  This feature has proven helpful when 
+
+attempting to gather statistics about a body of source code.
+
+</li>
+
+<!-- ======================================================================= -->
+
+<li>
+
+<p/>
+
+"Inside-out" traversal of an AST is now possible.  To perform an
+
+inside-out traversal of the AST, use the <code>inside_out</code> path
+
+specifier.  For example:
+
+    <pre><code>  inside_out ForStatement/CompoundStatement
+</code></pre>
+
+The above code will perform a bottom-up, breadth-first traversal of
+
+the AST, searching for any <code>CompoundStatement</code> children
+
+of <code>ForStatement</code> nodes.
+
+<!-- ======================================================================= -->
+
+<li>
+
+<p/>
+
+Replacement expressions now return the items that were inserted (or
+
+moved) within the tree, rather than the root of the tree.
+
+</li>
+
+<!-- ======================================================================= -->
+
+<li>
+
+<p/> The following other changes have also been made to the XForm
+
+implementation:
+
+<ul>
+
+
+
+  <li> The <code>xtc.xform.Parent</code> class has been removed, and
+
+  its functionality has been subsumed by
+
+  the <code>xtc.xform.Item</code> class.
+
+  </li>
+
+
+
+  <li>The <code>test</code> method of the <code>QueryVisitor</code>
+
+  class has been rewritten for efficiency.</li>
+
+
+
+  <li>The engine now stores its own copy of the target AST in an
+
+  internal format that caches paths up and down the tree.  This change
+
+  has lead to a drastic reduction in the number of objects allocated
+
+  while performing a query (a factor of 90).
+
+  </li>
+
+</ul>
+
+</li>
+
+
+
+</ul>
+</dl>

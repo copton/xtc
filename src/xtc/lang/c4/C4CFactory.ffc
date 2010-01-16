@@ -1,0 +1,120 @@
+/**
+ * C Factory for C4.
+ *
+ * @author Marco Yuen
+ */
+ 
+alias someType;
+
+factory xtc.lang.c4.C4CFactory
+{
+  createBlock
+  {
+    { #[statements] }
+  }
+
+  createAfterAdviceReturnReplacement
+  {
+    {
+      #leftVal = #rightVal;
+      goto #label;
+    }
+  }
+  
+  createPointerDeclaration
+  {
+    someType *#varName;
+  }
+  
+  createDeclaration
+  {
+    someType #varName;
+  }
+
+  createAssignemnt
+  {
+    #leftVal = #rightVal;
+  }
+  
+  /*
+   * Structure access, assignment, and declaration.
+   */
+  createDirectStructFieldAccessAssignment
+  {
+    #struct.#field = #val;
+  }
+  
+  createDirectStructFieldAccess
+  {
+    #struct.#field;
+  }
+  
+  createIndirectStructFieldAccessAssignment
+  {
+    #struct->#field = #val;
+  }
+  
+  createIndirectStructFieldAccess
+  {
+    #struct->#field;
+  }
+
+  createStructDeclaration
+  {
+    struct #tag {
+      #[statements]
+    };
+  }
+  
+  /*
+   * Function call and declaration
+   */
+  createFunctionCall 
+  {
+    #functionName ( #[arguments] )
+  }
+
+  /*
+   * Goto and label
+   */
+  createGoto
+  {
+    goto #label;
+  } 
+  
+  createLabel
+  {
+    #label:
+  }
+
+  createLabelPointerDeclaration
+  {
+    void *#ptr;
+  }
+
+  createLabelAddressExpression
+  {
+    #ptr = &&#label;
+  }
+
+  createGotoAddress
+  {
+    goto *#ptr;
+  }
+  
+  /*
+   * Return
+   */
+  createReturnWithVal
+  {
+    return #val;
+  }
+  
+  createReturn
+  {
+    return;
+  }
+}
+
+/* vim: set sts=2 sw=2 et: */
+

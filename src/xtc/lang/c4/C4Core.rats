@@ -1,0 +1,174 @@
+/*
+ * xtc - The eXTensible Compiler
+ * Copyright (C) 2005-2006 Princeton University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+ * USA.
+ */
+
+/**
+ * C4 productions.
+ * 
+ * @author Marco Yuen
+ * @version $Revision: 1.4 $
+ */
+module xtc.lang.c4.C4Core(Context, Constant, Identifier, Symbol, Spacing);
+
+import Context;
+import Constant;
+import Identifier;
+import Symbol;
+import Spacing;
+
+modify xtc.lang.CCore(Context, Constant, Identifier, Symbol, Spacing);
+
+
+/*
+ * Global Advice
+ *
+ */
+stateful Node DeclarationOrFunctionDefinition =
+    { yyState.mark(); }
+    d:Declaration { yyValue = yyState.annotate(d); }
+  / fd:FunctionDefinition { yyValue = yyState.annotate(fd); }
+  ;
+
+public generic GlobalIntroductionAdvice = 
+  "advice_intro":Keyword void:"(":Symbol aName:Identifier void:")":Symbol
+  void:"{":Symbol PushScope
+    { yyState.setAdvice(aName); }
+    DeclarationOrFunctionDefinition*
+  void:"}":Symbol void:";":Symbol PopScope
+  ;
+
+Node ExternalDeclaration += 
+    <GlobalAdvice> ga:GlobalIntroductionAdvice { yyValue = yyState.annotate(ga); }
+  / <Function> ...
+  ;
+
+/*
+ * Structure introduction advice
+ *
+ */
+inline generic AspectStructureTypeDefinition =
+  <Definition>
+  void:"struct":Keyword AttributeSpecifierList? StructureTag?
+  void:"{":Symbol PushScope EnterStructure
+  AspectStructureDeclarationList
+  void:"}":Symbol ExitStructure PopScope
+  AttributeSpecifierList?
+  ;
+
+transient generic AspectStructureDeclarationList =
+    <Regular> AnnotatedAspectStructureDeclaration+ Annotations
+  / <Empty>   &{ GCC }  /* Empty */ Annotations
+  ;
+
+stateful Node AnnotatedAspectStructureDeclaration =
+  { yyState.mark(); } d:AspectStructureDeclaration { yyValue = yyState.annotate(d); }
+  ;
+
+generic AspectStructureDeclaration =
+    <AdviceIntroField> ("__extension__":Keyword)? 
+    StructureAdviceDeclaration void:";":Symbol
+  / <Declaration>
+    ("__extension__":Keyword)?
+    SpecifierQualifierList OptionalStructureDeclaratorList void:";":Symbol
+    void:( &{ GCC } void:(";":Symbol)+ )?
+  ;
+
+generic StructureAdviceDeclaration = 
+  "advice_intro":Keyword void:"(":Symbol aName:Identifier void:")":Symbol
+    void:"{":Symbol PushScope
+      { yyState.setAdvice(aName); }
+      AspectStructureDeclarationList
+    void:"}":Symbol PopScope
+  ;
+  
+Node StructureTypeSpecifier +=
+    <Definition> ...
+  / <AspectStructureDefinition> AspectStructureTypeDefinition
+  ;
+
+/*
+ * Before, after and around advice
+ *
+ */
+generic AspectFunctionDefinition =
+    ("__extension__":Keyword)?
+    DeclarationSpecifiers? Declarator FunctionDeclaratorContext
+    DeclarationList? AspectCompoundStatement
+  ;
+
+generic AspectCompoundStatement =
+  void:"{":Symbol PushScope
+    LocalLabelDeclaration*
+    BeginningAdviceStatementList
+    AspectFunctionBody
+    EndingAdviceStatementList
+    Annotations
+  void:"}":Symbol PopScope
+  ;
+
+transient generic BeginningAdviceStatementList =
+    BeginningAdviceStatement*
+  ;
+  
+transient generic EndingAdviceStatementList =
+    EndingAdviceStatement*
+  ;
+
+transient generic AspectFunctionBody =
+    DeclarationOrStatement*
+  ;
+  
+generic BeginningAdviceStatement = 
+    <BeforeAdvice> bas:BeforeAdviceStatement { yyValue = bas; }
+  / <AroundAdvice> aras:AroundAdviceStatement { yyValue = aras; }  
+  ;
+
+generic EndingAdviceStatement = 
+    <AfterAdvice> aas:AfterAdviceStatement { yyValue = aas; }
+  ;
+
+generic BeforeAdviceStatement = 
+  "advice_before":Keyword void:"(":Symbol adviceName:Identifier void:")":Symbol
+  void:"{":Symbol PushScope
+    { yyState.setAdvice(adviceName); }
+    DeclarationOrStatement*
+  void:"}":Symbol void:";":Symbol PopScope
+  ;
+
+generic AfterAdviceStatement = 
+  "advice_after":Keyword void:"(":Symbol adviceName:Identifier void:")":Symbol
+  void:"{":Symbol PushScope
+    { yyState.setAdvice(adviceName); }
+    DeclarationOrStatement*
+  void:"}":Symbol void:";":Symbol PopScope
+  ;
+
+generic AroundAdviceStatement = 
+  "advice_around":Keyword void:"(":Symbol adviceName:Identifier void:")":Symbol
+  void:"{":Symbol PushScope
+    { yyState.setAdvice(adviceName); }
+    DeclarationOrStatement*
+  void:"}":Symbol void:";":Symbol PopScope
+  ;
+
+Node ExternalDeclaration += 
+    <Function> ... 
+  / <AspectFunction> AspectFunctionDefinition
+  ;
+
+/* vim: set sts=2 sw=2 et : */

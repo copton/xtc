@@ -1,0 +1,324 @@
+/*
+ * xtc - The eXTensible Compiler
+ * Copyright (C) 2007 New York University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WIT HOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+ * USA.
+ */
+factory xtc.lang.overlog.OverlogJavaFactory {
+
+keys               { int[] #name = new int[]{}; }
+
+tableInit          {
+                     tables.put(new ID(#name), new MaterializedTable(new ID(#name), #lifetime, #size, #keys));
+                   }
+
+periodicInit          {
+                     tables.put(new ID(#name), new MaterializedTable(new ID(#name), #lifetime, #size, new int[]{1}));
+                   }
+
+tableAddPeriodic  { tables.get(new ID(#tuplename)).insert(new #name(myAddr, 1, 1)); }
+
+tableAddTuple  { tables.get(new ID(#tuplename)).insert(new #name()); }
+
+joinLoop         {
+                    for (Tuple #name : tables.get(IDMap.getId(#tablename)).elements()) {   
+                    
+                    }
+                  }
+
+joinLoopStmnt      {
+                    for (Tuple #name : tables.get(IDMap.getId(#tablename)).elements()) {   
+                      #statement; 
+                    }
+                  }
+
+tupleClass       {
+                   public class #name implements Tuple, Marshaller<Tuple> {
+                     Object terms[];
+                     ID id;
+                     String name;
+                     public #name() {
+                       terms = new Object[#count];
+                       id = IDMap.getId( #idname );
+                       name = new String(#idname);
+                     }
+                     public #name() {
+                       terms = new Object[#count];
+                       id = IDMap.getId(#idname);
+                       name = new String(#idname);
+                       terms[0] = new NetAddr();
+                     }
+                     public ID getId() {
+                       return id;
+                     }
+                     @SuppressWarnings("unchecked")
+                     public <T> T getTerm(int index) {
+                       return (T)terms[index];
+                     }
+                     public int size() {
+                       return terms.length;
+                     }
+                     public Object[] terms() {
+                       return terms;
+                     }
+                  }
+                }
+
+tupleNew     { Event e = new #name(#[args]); }
+tableNew     { Event e = new TableUpdate(TableUpdate.INSERT, new #name(#[args])); }
+tableDelete     { Event e = new TableUpdate(TableUpdate.DELETE, new #name(#[args])); }
+
+
+bufferEvent  { eQueue.buffer(e); }
+saveEvent  { matches.add(e); }
+countCall  { matches.size() }
+
+tableInitializerClass {
+                        public class #name extends OLG {
+                          public #name(String host, int port, String epochFile) {
+                            super(host, port, epochFile);
+                          }
+                          public #name(String host, int port) {
+                            super(host, port);
+                          }
+                          public #name(NetAddr addr, String epochFile) {
+                            super(addr, epochFile);
+                          }
+                          public #name(NetAddr addr, String epochFile, boolean dbg) {
+                            super(addr, epochFile, dbg);
+                          }
+                          public void initialize() {};
+                        }
+                      }
+
+termAssignInteger    { terms[ #index ] = new Integer(#name); }
+termAssignBoolean    { terms[ #index ] = new Boolean(#name); }
+termAssignAddress    { terms[ #index ] = #name; }
+termAssignString     { terms[ #index ] = #name; }
+termAssignFloat      { terms[ #index ] = new Float(#name); }
+
+tupleReadExternal  {
+          public Tuple readFromStream(DataInputStream in) throws IOException {}
+                   }
+
+tupleWriteExternal {
+          public void writeToStream(Tuple t, DataOutputStream out) throws IOException {}
+                   }
+
+tupleToString      {
+          public String toString() {
+            StringBuffer str = new StringBuffer(name); 
+          }
+                   }
+
+appendOpen         {
+                      str.append("(");
+                   }
+
+appendClose         {
+                      str.append(")");
+                   }
+appendComma        {
+                      str.append(",");
+                   }
+
+appendBoolean      {
+                      str.append(((Boolean)terms[ #index ]).booleanValue());
+                   }
+
+appendInt          {
+                      str.append(((Integer)terms[ #index ] ).intValue());
+                   }
+appendAddress      {
+                      str.append(((NetAddr)terms[ #index ] ).toString());
+                   }
+appendFloat        {
+                      str.append(((Float)terms[ #index ] ).floatValue());
+                   }
+appendString        {
+                      str.append(((String)terms[ #index ]));
+                   }
+returnString       {
+                     return str.toString();
+                   }
+
+eventHandlerClass {
+                    public class #name implements EventHandler {
+                      public #name() {
+                        // do nothing.
+                      }
+                    }
+                  }
+eventHandlerProcess {
+                      public void process(Tuple t, Map<ID, Table>tables, EventQueue eQueue) {}
+                    }
+
+eventHandlerMatches {
+                      List<Event> matches = new ArrayList<Event>();
+                    }
+
+newID            {ID i = new ID(); }
+writeID          {id.writeToStream(id, out);}
+readID          {id = i.readFromStream(in);}
+
+writeInt          {out.writeInt(t.<Integer>getTerm(#index).intValue());}
+readInt          {int #name = in.readInt();}
+writeBoolean          {out.writeBoolean(t.<Boolean>getTerm(#index).booleanValue());}
+readBoolean          {boolean #name = in.readBoolean();}
+
+writeFloat          {out.writeFloat(t.<Float>getTerm(#index).floatValue());}
+readFloat          {float #name = in.readFloat();}
+
+writeString          {out.writeUTF(t.<String>getTerm(#index));}
+readString          {String #name = in.readUTF();}
+
+writeAddress          { ((NetAddr)terms[0]).writeToStream(t.<NetAddr>getTerm(#index), out); }
+
+netAddrNew        {NetAddr #name ;}
+readAddress       {#name = ((NetAddr)terms[0]).readFromStream(in);}
+
+registerMarshaller {  marshallers.put(new ID(#name), new #tuple() ); }                     
+registerHandle {  handlers.put(new ID(#name), new #handlerName()); }                     
+watchNew          { WatchSubscriber #name = new WatchSubscriber(); }
+watchSub          { eQueue.subscribe(new ID(#tupleName),  #subName); }
+
+exitNew          { ExitSubscriber #name = new ExitSubscriber(this); }
+exitSub          { eQueue.subscribe(new ID(#tupleName),  #subName); }
+
+periodicNew       { Tuple #tuple = new #name(myAddr, #period, #interval); }
+registerPeg       { peg.register(#tuple, #period, #iterations); }
+
+varDecl           { #type #name; }
+
+tupleAssign       { Tuple #name = t; }
+
+netAddr           { new NetAddr(#host, #port) }
+
+equals           { #lhs.equals(#rhs) }
+
+notEquals           { !(#lhs.equals(#rhs)) }
+
+aggFunctionCall { agg(matches, eQueue); }
+aggMinFunction    {
+                    protected void agg(List<Event> in, EventQueue eQueue) {
+                      Tuple #name;
+                      if (in.isEmpty()) {
+                        return;
+                      }
+                      Event f = (Event)in.get(0);
+                      if (f instanceof TableUpdate) {
+                        #tname = ((TableUpdate)f).getTuple();
+                      } else {
+                        #tname = (Tuple)f;
+                      }
+                      #type min = #access; 
+                      Event minEvent = f;
+                      for (Event e : in) {
+                        if (e instanceof TableUpdate) {
+                          #tname = ((TableUpdate)e).getTuple();
+                        } else {
+                          #tname = (Tuple)e;
+                        }
+                        if ((#access).compareTo(min) < 0) {
+                          min = #access;
+                          minEvent = e;
+                        }
+                      }
+                      eQueue.buffer(minEvent);
+                    }
+                  }
+aggMaxFunction    {
+                    protected void agg(List<Event> in, EventQueue eQueue) {
+                      Tuple #name;
+                      if (in.isEmpty()) {
+                        return;
+                      }
+                      Event f = (Event)in.get(0);
+                      if (f instanceof TableUpdate) {
+                        #tname = ((TableUpdate)f).getTuple();
+                      } else {
+                        #tname = (Tuple)f;
+                      }
+                      #type min = #access; 
+                      Event minEvent = f;
+                      for (Event e : in) {
+                        if (e instanceof TableUpdate) {
+                          #tname = ((TableUpdate)e).getTuple();
+                        } else {
+                          #tname = (Tuple)e;
+                        }
+                        if ((#access).compareTo(min) > 0) {
+                          min = #access;
+                          minEvent = e;
+                        }
+                      }
+                      eQueue.buffer(minEvent);
+                    }
+                  }
+aggCountFunction    {
+                    protected void count(List<Event> in, EventQueue eQueue) {
+                      Tuple #name;
+                      Event f = (Event)in.get(0);
+
+                      if (f instanceof TableUpdate) {
+                        #tname = ((TableUpdate)f).getTuple();
+                      } else {
+                        #tname = (Tuple)f;
+                      }
+                      int count = in.size();
+                      #type thing = #access; 
+                      eQueue.buffer(f);
+                    }
+                  }
+
+functionCall     { Function.#name(#[args]) }
+
+executableClass {
+
+public class RunOLG {
+  public static void main(String args[]) {
+    if(args.length < 2) {
+      System.out.println("Usage: runOLG <host> <port> [epochFile]");
+      System.exit(0);
+    }
+    OLG olg;
+    if(args.length == 2){
+      olg = new #name(args[0], (new Integer(args[1])).intValue());
+    } else {
+      olg = new #name(args[0],(new Integer( args[1])).intValue(), args[3]);
+    }
+    System.out.println("Starting olg");
+    olg.start();
+  }
+}
+
+                }
+
+conditional     {
+                  if ( #cond ) {
+                    #statement;
+                  }
+                }
+
+conditional     {
+                  if ( #cond ) {
+                    #[statements];
+                  }
+                }
+matchesFirst   {
+                 t = (Tuple)matches.get(0);
+               }
+
+}

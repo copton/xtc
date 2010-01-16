@@ -1,0 +1,70 @@
+# xtc - The eXTensible Compiler
+# Copyright (C) 2006 New York University
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+# USA.
+
+#add a getter method for the field
+for $i in  //FieldDeclaration/Modifiers/"property"/../.. return 
+  insert MethodDeclaration<
+            Modifiers<"public">,
+            $i/*[2],
+            concat( "get", $i/Declarators/Declarator/*[1] ),
+            FormalParameters<>,
+              null,
+              null,
+              Block<
+                ReturnStatement<
+                   PrimaryIdentifier<$i/Declarators/Declarator/*[1]>
+               >
+             >
+          >  after $i,
+
+#add a setter method for the field
+for $i in  //FieldDeclaration/Modifiers/"property"/../.. return 
+  insert MethodDeclaration<
+            Modifiers<"public">,
+            VoidTypeSpecifier<>,
+            concat( "set", $i/Declarators/Declarator/*[1] ) ,
+            FormalParameters<
+              FormalParameter<
+                null,
+                $i/*[2], 	
+                "val",
+                null
+              >        
+            >,
+            null,
+            null,
+            Block<
+              ExpressionStatement<
+                Expression<
+                  PrimaryIdentifier<$i/Declarators/Declarator/*[1]>,
+                  "=",
+                  PrimaryIdentifier<"val">
+                >
+              >
+            >
+         > after $i, 
+
+#replace the property declaration with a private field declaration
+for $i in //FieldDeclaration/Modifiers/"property"/../.. return
+   replace $i with FieldDeclaration<
+                     Modifiers<"private">,
+                     $i/*[2],
+                     Declarators<
+                       Declarator< $i/Declarators/Declarator/*[1], null, null >
+                     >
+                   >
+   

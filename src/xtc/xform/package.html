@@ -1,0 +1,638 @@
+<html>
+<body>
+<h1>The XForm query and transformation language.</h1>
+<p>This package provides a querying and transformation facility for abstract syntax 
+  trees (ASTs). The language, XForm, loosely follows the syntax and semantics 
+  of the XPath 2.0 XML query language, but with added support for AST transformations. 
+  However, there are some key differences between the XForm language and XPath, 
+  so a careful reading of this document is essential.</p>
+<p> Also note that example XForm queries can be found <a href="#Intro">here</a>. 
+  Additional examples can be found in the <code>xform/samples</code> subdirectory. 
+</p>
+<!-- ======================================================================= -->
+<h2>The Language</h2>
+<h3>Program Structure</h3>
+<p>XForm is a declarative language that can be used to query or transform an AST. 
+  An XForm script, or <i>query</i>, is composed of a series of one or more comma-separated 
+  expressions, each returning a sequence of tree items. If the query is composed 
+  of a single expression, its result is the value of the expression. However, 
+  if a query is composed of more than one expression, its result will be a list 
+  of the values of each expression (a list of lists). Note that internally, the 
+  query engine implicitly flattens all lists of lists.</p>
+<p/>It is also important to note that the result of each expression in a list 
+  of expressions provides the focus (discussed below) for the expression that 
+  follows it 
+  <!-- ======================================================================= -->
+<h3>Path Expressions</h3>
+<p>All XForm expressions generate ordered sets of tree items, called sequences 
+  A tree item may be a node within the AST, a string, or <code>null</code>. Nested 
+  sequences are not permitted.</p>
+<p>The most basic expression in XForm is the path expression. A path expression 
+  produces a sequence of all items in an AST that conform to a specified template. 
+  The format of a path expression template is:</p>
+<pre>
+Path expression&lt;-    &quot;/&quot; RelativePathExpression?
+                           / &quot;inside_out&quot;? &quot;//&quot; RelativePathExpression  
+                           / RelativePathExpression
+RelativePathExpression &lt;-    RelativePathExpression (&quot;/&quot; / &quot;//&quot;) StepExpression 
+                           / StepExpression
+StepExpression         &lt;-    ItemTest PredicateList / &quot;..&quot;
+ItemTest               &lt;-    PrimaryExpression / Identifier / &quot;*&quot;
+PredicateList          &lt;-    Predicate*
+Predicate              &lt;-    &quot;[&quot; (IntegerLiteral / Expression / FunctionCall ) &quot;]&quot;
+PrimaryExpression      &lt;-    &quot;.&quot; / StringLiteral / VariableReference / FunctionCall 
+                           / ParenthesizedExpression
+</pre>
+<p>The template begins with an optional path specifier - the initial focus of 
+  an expression. The focus of an expression can be thought of as the environment 
+  that an expression is evaluated in - it represents the context for each step 
+  of an expression. So in <code>E1/E2</code> or <code>E1 [E2]</code>, the value 
+  of <code>E1</code> is computed, which then acts as the focus for computing the 
+  value of <code>E2</code>.</p>
+<p>If the specifier is <code>/</code>, then the search will take place relative 
+  to the AST root. For example, the template<code>/FOO/BAR</code> will return 
+  all <code>BAR</code> nodes whose parent is a <code>FOO</code> node and whose 
+  grandparent is the AST root node. If the specifier is <code>//</code>, then 
+  all items that satisfy the template will be considered (so <code>//FOO</code> 
+  will collect all <code>FOO</code> nodes in the AST). If the keyword <code>inside_out</code> 
+  is prepended to a path expression using <code>//</code>, items will be chosen 
+  based on a bottom-up, breadth-first traversal of the AST. If the path specifier 
+  is omitted, then the nodes collected will have to be relative to the first step 
+  expression in the template (so <code>$x/FOO</code> will collect all <code>FOO</code> 
+  children of the nodes in the sequence <code>$x</code>). If a step expressions 
+  are separated by<code>//</code>, the latter expression will be matched against 
+  all descendents of the former, rather than just its children. (So, <code>//FOO//BAR</code> 
+  will collect all <code>FOO</code> descendents of all <code>BAR</code> nodes).</p>
+<p>The individual steps of a path expression are known as step expressions. There 
+  are two different kinds of step expressions -forward and reverse. A forward 
+  step expression filters the children or the descendents of the current focus, 
+  whereas the reverse step expression, <code>..</code>, moves back up the tree, 
+  to the level of the focus' parents. (E.g.. <code>//FOO/..</code> would collect 
+  the parents of every <code>FOO</code> node in the AST).</p>
+<p>Of the forward step expressions, tests include matching against the names of 
+  an item (as in <code>/FOO/BAR</code> or<code>/FOO/"j"</code>), matching all 
+  nodes (<code>/FOO/*</code>), or matching against a primary expression.</p>
+<p>A primary expression represents a value. There are five kinds. 
+<ul>
+  <li>The context item, <code>.</code>, which represents the current tree item 
+    being processed (so <code>//FOO/.</code> would resolve to all <code>FOO</code> 
+    nodes in the tree).</li>
+  <li>A string literal, such as <code>"baz"</code>.</li>
+  <li>A variable reference, such as <code>$stat</code>. Variable references begin 
+    with a dollar-sign, and represent a previously bound sequence of items.</li>
+  <li>A function call, such as <code>test($a,$b)</code>, which can be used to 
+    call an external function, and whose value and parameters are all sequences. 
+    Instructions on how to add external functions programmed in Java are described 
+    later.</li>
+  <li>A parenthesized expression, such as<code>(//CompoundStatement)</code> whose 
+    value is that of the expressions it contains, concatenated together.</li>
+</ul>
+<p></p>
+<p>A step expression may contain one or more predicates. A predicate takes the 
+  form of <code>[ Expression ]</code>, and represents a sequence. Each predicate 
+  will intersect its sequence with the current focus, producing a new focus for 
+  the evaluation of any subsequent predicates. The value of the final intersection 
+  is the value of the step expression.</p>
+<p> A predicate containing an integer literal (beginning at one) represents an 
+  index into the current focus. So <code>//FOO [1]</code> would return the first 
+  <code>FOO</code> node in the AST. </p>
+<p>When using predicates, it is important to note that within a predicate, the 
+  focus becomes that of the current step expression. So, for example, the 
+  value of <code>//FOO/BAR [BAZ]</code>, is a sequence containing all <code>BAR</code> 
+  nodes with <code>FOO </code>parents and <code>BAZ</code> children.</p>
+<p>Also note that tree traversals are done in a depth-first, in-order manner. 
+  If you would like to do an "inner" traversal, that is, traverse the tree in 
+  a bottom-up manner, you may use the <code>inner</code> keyword. For example, 
+<pre><code>replace inner //ForStatement with FOO&lt;&gt;</code></pre>
+will replace all <code>ForStatement</code> nodes in the AST with<code> FOO</code> 
+nodes, but the order of replacement will be inside-out. 
+<p></p>
+<p>In addition to searching an AST, XForm provides facilities for manipulating 
+  sequences. These facilities include binding variables, looping through sequences, 
+  conditionals, creating new items and evaluating logical operations over sequences.</p>
+<!-- ======================================================================= -->
+<H3>Binding Variables</H3>
+<p>To bind a sequence to a variable for later use, one can use a<code> let</code> 
+  expression. The syntax of a let expression is as follows:</p>
+<pre>
+LetExpression       &lt;- &quot;let&quot; VariableBindingList &quot;return&quot; SingleExpression
+VariableBindingList &lt;- VariableBinding (&quot;,&quot; VariableBinding)*
+VariableBinding     &lt;- VariableReference &quot;be&quot; SingleExpression
+</pre>
+<p>A let expression binds one or more sequences to variables for the duration 
+  of its single expression. For example, 
+<pre>let $f be //ForStatement, $cs be //CompoundStatement  return ($f, $cs)</pre>
+would return a sequence composed of all the for statements and all the compound 
+statements in an AST (a parenthesized expression concatenates the results of the 
+expressions within). 
+<p></p>
+<!-- ======================================================================= -->
+<H3>Looping</H3>
+<p>Two options exist to iterate through sequences - <code>for</code> and <code>cfor</code>. 
+  Their formats are: 
+<pre>
+ForExpression        &lt;- &quot;for&quot; IterativeBindingList &quot;return&quot; SingleExpression
+CForExpression       &lt;- &quot;cfor&quot; IterativeBindingList &quot;return&quot; SingleExpression
+IterativeBindingList &lt;- IterativeBinding (&quot;,&quot; IterativeBinding)*
+IterativeBinding     &lt;- VariableReference &quot;in&quot; SingleExpression
+</pre>
+
+<p>A for statement iterates through one or more sequences, binding the resultant 
+  singletons to the specified variables (the bindings hold for the duration of 
+  the expression's single expression) and evaluating its single expression. If 
+  more than one sequence is specified to iterate through, the iterations will 
+  be implicitly nested. So, 
+<pre>for $x in //FOO, $y in //BAR return $x union $y</pre>
+is equivalent to
+<pre>for $x in //FOO return   for $y in //BAR return    $x union $y</pre>
+<p>A cfor statement acts like a for statement, except that it iterates each of 
+  its bound variables concurrently, halting when one of them reaches its end. 
+  In either case, the resulting sequence of a looping expression is the concatenation 
+  of each sequence that it returns.</p>
+<!-- ======================================================================= -->
+<H3>Conditionals</H3>
+<p>Conditional expressions in XForm take the following form:
+
+<pre>
+IfExpression &lt;- &quot;if&quot; SingleExpression &quot;then&quot; SingleExpression &quot;else&quot; SingleExpression 
+</pre>
+
+<p></p>
+<p>Conditional expressions evaluate the first single expression. If that expression 
+  is a non-empty sequence, the second single expression is evaluated and its value 
+  is returned. Otherwise, the third single expression is evaluated and its value 
+  is returned.</p>
+<!-- ======================================================================= -->
+<H3>Set Operations</H3>
+<p>Set operations XForm take the following form:
+
+<pre>
+UnionExpression &lt;- UnionExpression &quot;union&quot; IntersectionExpression
+IntersectionExpression &lt;- IntersectionExpression &quot;intersect&quot; PathExpression
+DifferExpression    &lt;- DifferExpression &quot;differ&quot; LogicalExpression
+</pre>
+
+<p></p>
+<p> A union expression returns the union of two sequences, whereas an intersection 
+  expression returns their intersection and the differ expression returns their 
+  difference. Note that these operations are based on identity (so union is <i>not</i> 
+  a concatenation). If you wish to concatenate two single expressions, wrap them 
+  in a parenthesized expression </p>
+<!-- ======================================================================= -->
+<H3>Logical Operations</H3>
+<p/>There are two supported logical operation expressions, <code>or</code> and . 
+<p/>An <code>or</code> expression allows you to group together a series of pathexpressions 
+  and select the value of the first path expression that returns a non-null sequence. 
+  For example, the query: 
+<pre>  <code>//Foo or //Bar </code></pre>
+will select the sequence returned by <code>//Foo</code> if that sequence is non-null. 
+Should the sequence be null, the results of <code>//Bar</code> will be used. 
+<p/>An <code>and</code> expression also lets you group together a series of pathexpressions. 
+  If the value of each path expression in the series is non-null, all of the values 
+  are concatenated together into a single sequence and then returned. Otherwise, 
+  a null value is returned. For example, the query: 
+<pre>  <code>//Foo and //Bar</code></pre>
+will return each <code>Foo</code> and <code>Bar</code> node in the tree, should the tree contain both <code>Foo</code> and <code>Bar</code> nodes. Otherwise, 
+it will return a null value. 
+<p/>Note that these logical operations can be embedded inside of a pathexpression 
+  by way of parenthesized expressions. For example,
+<pre>  <code>//Foo/(Bar or Zoo)</code></pre>
+will return all <code>Bar</code> children of <code>Foo</code> nodes, should any 
+exist. Otherwise, it will attempt to return any <code>Zoo</code> children of <code>Foo</code> 
+nodes. Whereas, 
+<pre>  <code>//Foo/(Bar and Zoo)</code></pre>
+will return any <code>Bar</code> nodes with <code>Foo</code> parents and <code>Zoo</code> 
+siblings, and any <code>Zoo</code> nodes with <code>Foo</code> parents and <code>Bar</code> 
+siblings, should both sequences be non-null. 
+<!-- ======================================================================= -->
+<H3>Generating New Items</H3>
+<p>New tree items may be generated with a new item expression. A newitem expression 
+  creates a singleton sequence containing a new tree item. It takes the following 
+  form:</p>
+
+<pre>
+NewItemExpression &lt;- &quot;null&quot; / StringLiteral / NewNodeExpression
+NewNodeExpression &lt;- Identifier &quot;&lt;&quot; Children &quot;&gt;&quot;
+Children          &lt;- Child (&quot;,&quot; Child)*
+Child             &lt;- &quot;null&quot; / NewNodeExpression / SingleExpression / /* empty */
+</pre>
+
+<p>Note that the last type of child is blank, which means that the newly created 
+  node will have no children (which is <i>not</i> the same as having a null child). 
+  So <code>FOO&lt;&gt;</code> would create a<code> FOO</code> node with no children, 
+  whereas <code>FOO&lt;null&gt;</code> would create a <code>FOO</code> node with 
+  a single null child.</p>
+<!-- ======================================================================= -->
+<H3>Transforming ASTs</H3>
+<p> Modifications to abstract syntax trees are done using replacement expressions,
+    removal expressions, addition expressions, or insertion expressions. 
+    Users transform ASTs in one of 
+    two ways. The first is to query the AST for items to replace and then replacing 
+    them with new or existing items. The second way is to query the AST for insertion 
+    position markers and then inserting new or existing items.</p>
+<p>The format of a replacement expression is: </p>
+
+<pre>
+<code>
+ReplacementExpression &lt;- &quot;replace&quot; SingleExpression &quot;with&quot; SingleExpression
+</code>
+</pre>
+<p> The value of a replacement expression is a sequence containing the items that 
+  have been inserted (or moved) within the tree, otherwise, if no replacements 
+  have been made, it's an empty sequence. For example, 
+<pre> for $f in //ForStatement replace $f with CompoundStatement&lt;&gt;</pre>
+would replace all of the for statements in an AST with new compoundstatements, 
+whereas 
+<pre> for $f in //ForStatement replace $f with //CompoundStatement [1]</pre>
+would replace each for statement in the tree with one the tree's first compound 
+statement. Note that a sequence need not be bound to a variable for its items 
+to be replaced, so 
+<pre>replace //BAR with FOO&lt;&gt;</pre>
+would replace any <code>BAR</code> nodes in the AST with <code>FOO</code> nodes. 
+<p></p>
+<p> Note that in the case of a replacement expression, in the context of a for 
+  expression, you can omit the "return". </p>
+
+<p>The format of a remove Expression is:
+<pre>
+<code>"remove" SingleExpression</code>
+</pre>
+<p>For example, <code> remove //IfStatement </code> removes all IfStatements from 
+the AST.</p>
+
+<p>The format of an add Expression is:
+<pre>
+<code> "add" SingleExpression "to" SingleExpression
+</code>
+</pre>
+<p>For example, <code> add Foo<> to //Bar </code> adds a Foo node (as the last child)
+to all Bar nodes. </p>
+<p>The format of an insert expression is:
+<pre>
+<code>
+insert SingleExpression before SingleExpression 
+insert SingleExpression after SingleExpression
+</code>
+</pre>
+<p>For example, <code>insert Foo&lt;&gt; before //Bar&lt;&gt;</code> would create 
+  and insert new Foo&lt;&gt; items before every Bar node in the AST. </p>
+<p>The value of an insertion operation is a sequence containing the items inserted, 
+  or an empty sequence if no insertions are made. insert expression operate only on
+  none empty sequences. To illustrate, <code>insert Foo<> before //Block/*[1]</code>
+  adds a Foo<> node before the first child in a Block node. It will not, however,  add 
+  a Foo<> node to a an empty Block. This behaviour, if desired, can be implemented with
+  addtional commands; for example, <code> replace empty(//Block<>) with Block< Foo<> ></code></p>
+<p> 
+  <!-- ======================================================================= -->
+</p>
+<H3>Extending XForm</H3>
+<p>A user may add functionality to XForm by way of external functions. To add 
+  an external function to XForm, one must do the following:</p>
+<p>
+<ul>
+  <li>Create a new class that implements the xtc.xform.Function interface. Make 
+    sure to have the <code>getName</code> method return the name of the function 
+    as it will be called, and have the<code> apply</code> method return a list 
+    of items.</li>
+  <li>When you want to use the external function, use an <code>import</code> statement 
+    at the beginning of your query. The import statement takes a list of quoted 
+    class names, and loads the named classes. For example, 
+    <pre>
+<code>import &quot;xtc.xform.IsNullFunction&quot;,&quot;xtc.xform.TestFunction&quot;</code>would load 
+      the external function classes&quot;IsNullFunction&quot; and &quot;TestFunction&quot;.</pre>
+  </li>
+</ul>
+<p></p>
+<p></p>
+<p></p>
+<p></p>
+<p></p>
+<p></p>
+<p></p>
+<p><a name="Intro"></a><h3>Example Queries</h3></p>
+<p><b>Example0: </b>Using Xform queries to find empty <code>IfStatements</code> 
+<pre>
+<code>
+1.  //example0.java
+2.  class example1{
+3.     public void bar(){
+4.        Boolean foo = true;
+5.        if( foo ){
+
+6.           //empty!
+7.        }
+8.        int i = 0;
+9.        if( foo ) //no braces!
+10.          i++; //not empty
+11.       if( !foo ); //empty!!
+12.    }
+13. }
+</code>
+</pre>
+<p>In<i> example0.java</i> above, the<code> IfStatements</code> on lines 5 and 
+  6 are empty. To find them using xform, we must first identify the AST structure 
+  of empty<code> IfStatement</code>s. Using the xform driver's <code>-preAST</code> 
+  function, we deduce that empty<code> IfStatements</code> come in two flavours: 
+  either an<code> IfStatement</code> item with an empty Block child or an<code> 
+  IfStatement</code> item with an EmptyStatement child. The query 
+<pre>
+<code>
+1. #find all the emptyIfStatements
+2. empty(//IfStatement/Block)/.. union //IfStatement[ EmptyStatement ]
+</code>
+</pre>
+<p>will return all empty<code>IfStatement</code>. The XForm library function empty 
+  returns sequence items that have no children so <code>empty(//IfStatement/Block)</code> 
+  will return all empty blocks belong to<code> IfStatement</code>. Adding /.. 
+  will return the parents of those blocks. <code>//IfStatement[ EmptyStatement 
+  ] </code> returns all IfStatement items that have an <code>EmptyStatement</code> 
+  child. The union of the two expressions gives all Statements in the program.</p>
+<p>For additional feedback, the library function lines() can be used to report 
+  the line and column information of the items identified. Executing the with 
+  query 
+<pre>
+<code>
+1. #example0.xform
+2. #find all the emptyIfStatements
+3. lines( empty(//IfStatement/Block)/.. union //IfStatement[ EmptyStatement ] )
+</code>
+
+with <i>java xtc.xform.Driver -java example0.xform example0.java</i> would display:</pre>
+<p><i>example0.java: 5:7<br>
+  example0.java: 11:7</i><br>
+</p>
+<p><b>Example1</b>: Using XForm transformations to ensure that all IfStatements in a Java program have braces.<br>
+<pre>
+<code>
+1.  //example1.java
+2.  class example1{
+3.     public void bar(){
+4.        Boolean foo = true;
+5         if( foo ){
+
+6.           //this one is good
+7.        }
+8.        int i = 0;
+9.        if( foo ) //no braces!
+10.          i++;
+11.    }
+12. }</code></pre>
+<p>In<i> example1.java</i> above the IfStatement on line 8 violates the coding 
+  convention that states all if statements should have curly braces. To correct 
+  this using xform transformations, we must first query the program's AST to find 
+  all braceless <code>IfStatement</code>. Using the xform Driver's preAST command 
+  line option (or alternately figuring it out from the grammar), we realize that 
+  the AST representation of a braceless if Statement does not have a Block enclosing 
+  it's body.</p>
+<p>The IfStatement on line 5 is represented as</p>
+<pre><code> IfStatement&lt;
+    PrimaryIdentifier&lt;&quot;foo&quot;&gt;,
+    Block&lt;&gt;
+ &gt;
+</code>while the one on line 8 is represented as </pre>
+<pre>
+<code> IfStatement&lt;
+  PrimaryIdentifier&lt;&quot;foo&quot;&gt;,
+   ExpressionStatement&lt;
+    PostfixExpression&lt;
+      PrimaryIdentifier&lt;&quot;i&quot;&gt;,
+      PostincrementTail&lt;&gt;
+    &gt;
+  &gt;
+ &gt;</code></pre>
+We can find braceless <code>IfStatements</code> with the XForm query 
+<pre><code> //IfStatement differ IfStatement[ Block ]</code></pre>
+<p>The complete query to add missing braces is 
+
+<pre>
+<code>
+1. #example1.xform
+2  #add missing braces toIfStatement
+3. for $i in //IfStatement differ //IfStatement[ Block ] return
+
+4.    replace $i with IfStatement&lt; $i/*[1], Block&lt; $i/*[2] &gt; &gt;
+</code></pre>
+
+<p>Line 3 in the <i>addifbrace.xform</i> iterates over each Blockless if statement 
+  in the AST Line 4 creates a new IfStatement item with two children and replaces 
+  the original. The first child in the new item is the same as the first child 
+  of the original IfStatement - meaning the <code>if( foo )</code> part of the 
+  statement is rewritten/preserved as <code>if( foo )</code>. The second child 
+  is a new Block item containing the second child of the original IfStatement. 
+</p>
+<p>The command <code><i>java xtc.xform.Driver -java -printJava example1.xform 
+  example1.java</i> </code> produces the output 
+
+<pre>
+<code>
+1.  class example1{
+2.     public void bar(){
+3.        Boolean foo = true;
+4         if ( foo ){
+
+5.        }
+6.        int i = 0;
+7.        if ( foo ){
+8.          i++;
+9.        }
+10.    }
+11. }
+</code>
+</pre>
+<p><b>Example2:</b> Transforming for loops to enforce 'Must Have Braces' rule.</p>
+<p>The procedure for transforming <code>ForStatement</code>s similar to the IfStatement 
+  transformation in Example1. The difference, however, is that the first 3 children 
+  of each Blockless <code>ForStatement</code> must be preserved in the rewrite. 
+  This can be done with the query</p>
+<p> 
+<pre>
+<code>
+1. #add missing forStatement braces
+
+2. for $f in //ForStatement differ //ForStatement[ Block ] return
+
+3.    replace $f with ForStatement&lt; $f/*[1], $f/*[2], $f/*[3], Block&lt; $f/*[4]&gt; &gt;</code>
+</pre>
+or by using XForms <code>subsequence()</code> library function in the query 
+
+<pre>
+<code>
+1. #example2.xform
+2. for $f in //ForStatement differ //ForStatement[ Block ] return
+3.   replace $f with ForStatement&lt; subsequence( $f/*, 1, 3 ), Block&lt; $f/*[4] &gt; &gt;
+</code></pre>
+
+<pre><code>
+1. //example2.java
+2. class example2{3. public void bar(){
+4.   int j = 0;
+5.   for( int i = 0; i &lt; 10; i++ )
+6.     j++;
+7.
+8.   for(;;)
+9.      j--;
+10.   }
+11.}
+</code></pre>
+<p>On the file <i>example2.java</i> (shown above), the query <i>example2.xform</i> 
+  produces the following transformation. 
+
+<pre>
+<code>
+1. class example2{
+2.   public void bar(){
+3.      int j = 0;
+4.      for( int i = 0; i &lt; 10; i++ ){
+5.         j++;
+6.        }
+7.      for (;;){
+8.        j--;
+9.     }
+10.  }
+11.}</code></pre>
+<p><b>Example3:</b> Using XTC and Xform to create an simple extension to Java 
+  (JavaProperty), that adds C# like properties. Note that this example does not 
+  have the full set of C# property features. Note also that all code in this example 
+  can be found in <code>xform/samples/javaproperty</code></p>
+<p>In our extension, we wish to write property declarations in the form &quot;property 
+  int foo&quot;. A desugaring transformation convert the JavaProperty code to 
+  Java code that contains generate accessors methods for this variable in this 
+  declaration. For example the JavaProperty code: 
+<pre><code>1. //sample.jprop2. class sample{3.    property int foo;4. }</code></pre>
+<p>should desugared to the following Java code </p>
+
+<pre>
+<code>
+1. //sample.java2. class sample{
+
+3.   private int foo;
+
+4.   public void setfoo( int val ){
+5.     foo = val;
+6.   }
+7.   public int getfoo(){
+8.      return foo;
+9.   }
+10. }
+</code>
+</pre>
+<p>First we use xtc to define a grammar for the extension. This involves adding 
+  &quot;property&quot; as a keyword and as a Modifer. <br>
+  The JavaPropertyKW.Rats file below adds 'property' as a keyword to the existing 
+  list of Java keywords. 
+<pre>
+<code>
+1. //JavaPropertyKW.rats
+2. module xtc.xform.samples.javaproperty.JavaPropertyKW;
+3. import xtc.lang.JavaIdentifier(xtc.lang.JavaSymbol, xtc.util.Spacing);
+4. 
+5. body {
+6.   static{
+7.     add(JAVA_KEYWORDS, new Object[] { &quot;property&quot; });
+8.   }
+9. }
+</code>
+</pre>
+The JavaProperty.Rats file below modifies the existing Java core grammar (JavaCore) 
+to add 'property' as a Modifier. For more details on grammar modification see: 
+Rats! 
+<pre>
+<code>
+1.  //JavaProperty.Rats
+2.  module xtc.xform.samples.javaproperty.JavaProperty;
+3.  instantiate xtc.lang.JavaType(xtc.lang.JavaIdentifier, xtc.lang.JavaSymbol);
+4.  instantiate xtc.lang.JavaConstant(xtc.lang.JavaIdentifier, xtc.util.Spacing);
+5.  instantiate xtc.lang.JavaIdentifier(xtc.lang.JavaSymbol, xtc.util.Spacing);
+6.  instantiate xtc.util.Symbol(xtc.util.Spacing);
+7.  instantiate xtc.lang.JavaSymbol(xtc.util.Symbol);
+8.  instantiate xtc.util.Spacing;
+9.  import      xtc.xform.samples.javaproperty.JavaPropertyKW;
+10. 
+11. modify xtc.lang.JavaCore(xtc.lang.JavaType, xtc.lang.JavaConstant, xtc.lang.JavaIdentifier, xtc.lang.JavaSymbol,xtc.util.Spacing, xtc.util.Null );
+12. option withLocation, constant, parser(xtc.xform.JavaPropertyParser);
+13. 
+14. String Modifier += &lt;Strictfp&gt; ... / <Property> &quot;property&quot;:Word;
+</code></pre>
+<p>We can now generate a parser for our JavaProperty grammar by typing <code>'make'</code> 
+  in <code>xform/samples/javaproperty</code> to execute the following commands: 
+  <i><br>
+  java xtc.parser.Rats -in ~/java/src JavaProperty.rats<br>
+  javac -source 1.4 -d ~/java/classes -sourcepath ~java/src JavaPropertyParser.java</i> 
+</p>
+<p>Finally, using the Xform query JPTrans.xform shown below, we can transform 
+  JavaProperty code to Java code with the command:<br>
+  <i>java xtc.xform.Driver -printJava -parser xtc.xform.samples.javaproperty.JavaPropertyParser 
+  JPTrans.xform sample.jprop</i> <br>
+  <br>
+  This command line instructs the XForm engine to 1. parse <code>sample.jprop</code> 
+  using the <code>JavaPropertyParser</code> 2. Execute the query <code>JPTrans.xform</code> 
+  3. Pretty print the resulting code using xtc's Java PrettyPrinter 
+<p>JPTrans.xform is explained as follows: Line 5 finds all property declarations.
+Lines 6-18 inserts getter methods after each property declaration. Line 7 makes 
+  the method public. Line 8 sets the methods return type to be the same as the 
+  field type. Line 9 sets the method name as the concatenation of &quot;get&quot; 
+  and the field's name. Lines 14-16 add a return statement with the field name 
+  as an identifier. Lines 21-45 add a setter method after each property declaration. 
+  This is similar to the xform code for adding getter methods, the main differences 
+  are the return types and an assignment statement instead of a Return statement. 
+  Last, lines 49-55 rewrite all property declarations to private field declarations 
+  with the same name and type. 
+<pre>
+1.  #JPTrans.xform
+2.  #XFrom desugaring from JavaProperty to pure Java.
+3.
+4.  #add a getter method for the field
+5.  for $i in  //FieldDeclaration/Modifiers/&quot;property&quot;/../.. return 
+6.    insert MethodDeclaration&lt;7.              Modifiers&lt;&quot;public&quot;&gt;,
+8.              $i/*[2],
+9.              concat( &quot;get&quot;, $i/Declarators/Declarator/*[1] ),
+10.             FormalParameters&lt;&gt;,
+11.               null,
+12.               null,
+13.               Block&lt;
+14.                 ReturnStatement&lt;
+15.                    PrimaryIdentifier&lt;$i/Declarators/Declarator/*[1]&gt;
+16.                &gt;
+17.              &gt;
+18.           &gt;  after $i,
+19. 
+20. #add a setter method for the field
+21. for $i in  //FieldDeclaration/Modifiers/&quot;property&quot;/../.. return 
+22.   insert MethodDeclaration&lt;
+23.             Modifiers&lt;&quot;public&quot;&gt;,
+24.             VoidTypeSpecifier&lt;&gt;,
+25.             concat( &quot;set&quot;, $i/Declarators/Declarator/*[1] ) ,
+26.             FormalParameters&lt;
+27.               FormalParameter&lt;
+28.                 null,
+29.                 $i/*[2],  
+30.                 &quot;val&quot;,
+31.                 null
+32.               &gt;       
+33.             &gt;,
+34.             null,
+35.             null,
+36.             Block&lt;
+37.               ExpressionStatement&lt;
+38.                 Expression&lt;
+39.                   PrimaryIdentifier&lt;$i/Declarators/Declarator/*[1]&gt;,
+40.                   &quot;=&quot;,
+41.                   PrimaryIdentifier&lt;&quot;val&quot;&gt;
+42.                 &gt;
+43.               &gt;
+44.             &gt;
+45.          &gt; after $i, 
+46. 
+47. #replace the property declaration with a private field declaration
+48. for $i in //FieldDeclaration/Modifiers/&quot;property&quot;/../.. return
+49.    replace $i with FieldDeclaration&lt;
+50.                      Modifiers&lt;&quot;private&quot;&gt;,
+51.                      $i/*[2],
+52.                      Declarators&lt;
+53.                        Declarator&lt; $i/Declarators/Declarator/*[1], null, null &gt;
+54.                      &gt;
+55.                    &gt;
+56. 
+</pre>
+</body>
+</html>

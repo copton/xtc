@@ -1,0 +1,103 @@
+/*
+ * xtc - The eXTensible Compiler
+ * Copyright (C) 2007 New York University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+ * USA.
+ */
+
+/**
+ * Grammar for the Overlog language.
+ *
+ * @author Robert Soule
+ * @version $Revision: 1.8 $
+ * 
+ */
+module xtc.lang.overlog.Constant(Spacing, Symbol, Identifier);
+
+import Spacing;
+import Symbol;
+import Identifier;
+
+
+Node Constant = 
+    FloatingPointConstant Spacing
+  / IntegerConstant Spacing
+  / StringConstant Spacing
+  / BooleanConstant 
+  / InfinityConstant 
+  / NullConstant
+  / LocationConstant
+  ;
+ 
+
+generic FloatingPointConstant = FloatingPointString ;
+
+String FloatingPointString =
+    Digit+ '.' Digit+ Exponent? FloatTypeSuffix? 
+  /        '.' Digit+ Exponent? FloatTypeSuffix?
+  / Digit+            Exponent  FloatTypeSuffix?
+  / Digit+            Exponent? FloatTypeSuffix
+  ;
+
+transient String Exponent        = [eE] [+\-]? Digit+ ;
+transient String FloatTypeSuffix = [fFdD] ;
+
+generic IntegerConstant =
+    <Hex>       HexConstant
+  / <Decimal>   DecimalConstant 
+  ;
+
+transient String HexConstant =  HexNumeral     HexTypeSuffix? ;
+
+transient String DecimalConstant = '-'? DecimalNumeral IntegerTypeSuffix?  ;
+
+transient String DecimalNumeral    = '0' / NonZeroDigit Digit* ;
+transient String NonZeroDigit      = [1-9] ;
+transient String Digit             = [0-9] ;
+
+transient String HexNumeral        = '0' [xX] HexDigit+ ;
+transient String HexDigit          = [0-9a-fA-F] ;
+
+transient String IntegerTypeSuffix = [lL] ;
+transient String HexTypeSuffix = [UI] ;
+
+generic StringConstant   = CharacterSequence;
+String CharacterSequence = ["] ( EscapeSequence / !["\\] _ )* ["] ;
+
+transient String EscapeSequence =
+  '\\' [btnfr"'\\] 
+  ;
+
+generic BooleanConstant =
+    "true":Word
+  / "false":Word
+  ;
+
+generic InfinityConstant =
+  void:"infinity":Word
+  ;
+
+generic NullConstant =
+  void:"null":Word
+  ;
+       
+generic LocationConstant =
+     AddressSequence void:":":Symbol DecimalNumeral
+  /  IPSequence void:":":Symbol DecimalNumeral
+  ;
+
+String AddressSequence = [a-zA-Z0-9]+ ( '.' [a-zA-Z0-9]+ )* ;
+ 
+String IPSequence = Digit+ [.] Digit+ [.] Digit+ [.] Digit+ ; 

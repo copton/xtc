@@ -1,0 +1,351 @@
+/*
+ * xtc - The eXTensible Compiler
+ * Copyright (C) 2007 New York University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+ * USA.
+ */
+
+/**
+ * Grammar for the Overlog language.
+ *
+ * @author Robert Soule
+ * @version $Revision: 1.10 $
+ * 
+ */
+module xtc.lang.overlog.Core(Spacing, Symbol, Reserved, 
+                        Identifier, Literal);
+
+import Spacing;
+import Symbol;
+import Reserved;
+import Identifier;
+import Literal;
+
+/*
+ * A program is a sequence of zero or more statements. 
+ * A statement is a clause followed by a period, 
+ */
+
+public Node Program = Spacing Clauses EndOfFile ;
+
+generic Clauses = (Clause void:".":Symbol)* ;
+
+/*
+ * A clause is a head literal followed by an optional body. 
+ * A body is a comma separated list of literals. 
+ * A clause without a body is called a fact, and a rule 
+ * when it has one. The punctuation `:-' separates the head 
+ * of a rule from its body. 
+ */
+
+Node Clause =
+    <Rule>           Rule
+  / <Fact>           Fact 
+  / <TypeDeclration> TypeDeclaration 
+  ;
+
+//----------------------------  Rules  --------------------------------------/
+
+/*
+ * A rule is an assertion or a retraction. 
+ * An assertion adds the clause to the database if it is safe. 
+ * A retraction removes the clause from the database. 
+ */
+generic Rule = 
+    <Assertion>  RuleIdentifier? ("delete":Word)? Tuple void:":-":Symbol TupleOrExpressionList 
+  ;
+
+Pair<Node> TupleOrExpressionList = 
+  TupleOrExpression (void:",":Symbol TupleOrExpression)* ;
+
+Node TupleOrExpression =
+    Tuple
+  / Expression
+  ;
+
+//----------------------------  Type Declaration  ---------------------------/
+
+Node TypeDeclaration =
+    <TupleDeclaration>   TupleDeclaration
+  / <FunctionDeclaration> FunctionDeclaration
+  ;
+
+generic TupleDeclaration =
+  void:"tuple":Word PredicateSymbol void:"(":Symbol TypeList void:")":Symbol ;
+
+generic FunctionDeclaration =
+  void:"fun":Word TypeIdentifier FunctionName void:"(":Symbol TypeList? void:")":Symbol ;
+
+Pair<Node> TypeList = TypeIdentifier (void:",":Symbol TypeIdentifier)* ;
+
+Node TypeIdentifier = 
+    <Location>    LocationType
+  / <IntType>     IntType
+  / <FloatType>   FloatType
+  / <StringType>  StringType
+  / <BooleanType> BooleanType
+  / <VoidType>    VoidType
+  ;
+
+generic LocationType = "location":Word;
+generic IntType = "int":Word;
+generic FloatType = "double":Word;
+generic StringType = "string":Word;
+generic BooleanType = "bool":Word;
+generic VoidType = "void":Word;
+
+//----------------------------  Facts  --------------------------------------/
+
+Node Fact=
+    <Materialization>       Materialization
+  / <TupleObservation>      TupleObservation
+  / <FlowObservation>       FlowObservation
+  / <Externalization>       Externalization
+  / <GenericFact>           GenericFact
+  ;
+ 
+generic Materialization =
+  void:"materialize":Word void:"(":Symbol RuleIdentifier void:",":Symbol 
+  Constant void:",":Symbol Constant void:",":Symbol PrimaryKeys 
+  void:")":Symbol 
+  ; 
+
+generic PrimaryKeys = 
+  void:"keys":Word void:"(":Symbol KeyList void:")":Symbol 
+  ;
+
+Pair<Node> KeyList = Constant (void:",":Symbol Constant)* ;
+
+generic TupleObservation =
+  void:"watch":Word void:"(":Symbol RuleIdentifier void:")":Symbol 
+  ;
+
+generic FlowObservation =
+  void:"watchmod":Word void:"(":Symbol RuleIdentifier void:",":Symbol 
+  StringConstant void:")":Symbol 
+  ;
+
+generic Externalization =
+  void:"stage":Word void:"(":Symbol Constant void:",":Symbol 
+  RuleIdentifier void:",":Symbol RuleIdentifier void:")":Symbol 
+  ;
+
+generic GenericFact = Tuple ;
+
+//----------------------------  Expessions  ---------------------------------/
+
+generic Expression =
+    <Assignment> UnaryExpression AssignmentOperator Expression
+  / <Base>       yyValue:LogicalOrExpression
+  ;
+
+String AssignmentOperator =
+    <Asign>     ":=":Symbol
+  / <Equal>     "=":Symbol
+  ;
+
+generic LogicalOrExpression =
+     <Or>  LogicalOrExpression "||":Symbol LogicalAndExpression
+  / <Base> yyValue:LogicalAndExpression
+  ;
+
+generic LogicalAndExpression =
+    <And>  LogicalAndExpression "&&":Symbol EqualityExpression
+  / <Base> yyValue:EqualityExpression
+  ;
+
+generic EqualityExpression =
+    <Recursion>  EqualityExpression EqualityOperator RelationalExpression
+  / <Base>       yyValue:RelationalExpression
+  ;
+
+String EqualityOperator =
+    <Equal>       "==":Symbol
+  / <NotEqual>    "!=":Symbol
+  / <LessGreater> "<>":Symbol
+  ;
+
+generic RelationalExpression =
+    RelationalExpression RelationalOperator ShiftExpression
+  / yyValue:ShiftExpression
+  ;
+
+String RelationalOperator =
+    <Less>         "<":Symbol
+  / <Greater>      ">":Symbol
+  / <LessEqual>    "<=":Symbol
+  / <GreaterEqual> ">=":Symbol
+  ;
+
+transient generic ShiftExpression =
+    <Recursion>  ShiftExpression ShiftOperator AdditiveExpression
+  / <Base>       yyValue:AdditiveExpression
+  ;
+
+String ShiftOperator =
+    <Left>  "<<":Symbol
+  / <Right> ">>":Symbol
+  ;
+
+transient generic AdditiveExpression =
+    <Recursion>  AdditiveExpression AdditiveOperator MultiplicativeExpression
+  / <Base>       yyValue:MultiplicativeExpression
+  ;
+
+String AdditiveOperator =
+    <Plus>  "+":Symbol
+  / <Minus> "-":Symbol
+  ;
+
+transient generic MultiplicativeExpression =
+    <Recursion> MultiplicativeExpression MultiplicativeOperator 
+                UnaryExpression
+  / <Base>      yyValue:UnaryExpression
+  ;
+
+String MultiplicativeOperator =
+    <Times>  "*":Symbol
+  / <Over>   "/":Symbol
+  / <Modulo> "%":Symbol
+  ;
+
+Node UnaryExpression =
+    <LogicalNot> LogicalNegationExpression
+  / <Inclusive>  InclusiveExpression
+  / <Base>       yyValue:PostfixExpression
+  ;
+
+generic LogicalNegationExpression =
+  void:"!":Symbol UnaryExpression
+  ;
+
+generic InclusiveExpression =
+  PrimaryExpression "in":Word RangeExpression
+  ;
+
+generic RangeExpression =
+  LeftRangeOperator Expression void:",":Symbol 
+    Expression RightRangeOperator
+  ;
+
+String LeftRangeOperator =
+    <Inclusive>    "[":Symbol
+  / <Exclusive>    "(":Symbol
+  ;
+String RightRangeOperator =
+    <Inclusive>    "]":Symbol
+  / <Exclusive>    ")":Symbol
+  ;
+
+generic PostfixExpression =
+    <PostFix> PrimaryExpression PostfixExpressionTail
+  / <Base>    yyValue:PrimaryExpression
+  ;
+
+Node PostfixExpressionTail = Arguments;
+
+generic Arguments =
+    <Arguments>   void:"(":Symbol ExpressionList void:")":Symbol
+  / <NoArguments> void:"(":Symbol void:")":Symbol
+  ;
+
+
+Pair<Node> ExpressionList = Expression (void:",":Symbol Expression)* ;
+
+Node PrimaryExpression =
+   <Constant>                  Constant
+ / <Identifier>                Identifier 
+ / <VectorExpression>          VectorExpression
+ / <MatrixExpression>          MatrixExpression
+ / <ParenthesizedExpression>   ParenthesizedExpression
+ ;
+
+generic VectorExpression =
+  void:"[":Symbol IndexList void:"]":Symbol ;
+
+Pair<Node> IndexList = Constant (void:",":Symbol Constant)* ;
+
+generic MatrixExpression =
+  void:"{":Symbol MatrixEntries void:"}":Symbol ;
+
+Pair<Node> MatrixEntries = MatrixEntry ( void:",":Symbol MatrixEntry )*;
+
+generic MatrixEntry =
+  void:"[":Symbol IndexList void:"]":Symbol ;
+
+generic ParenthesizedExpression =
+  void:"(":Symbol Expression void:")":Symbol
+  ;
+
+//----------------------------  Tuples  -------------------------------------/
+
+/*
+ * A literal, is a predicate symbol followed by an optional 
+ * parenthesized list of comma separated terms. 
+ * A predicate symbol is either an identifier or a string. 
+ * A term is either a variable or a constant. 
+ * As with predicate symbols, a constant is either 
+ * an identifier or a string. 
+ */
+
+generic Tuple =
+  PredicateSymbol void:"(":Symbol TermList void:")":Symbol
+  ;
+
+Node PredicateSymbol = 
+    <RuleIdentifier> RuleIdentifier
+  / <StringConstant> StringConstant
+  ;
+
+//----------------------------  Terms  --------------------------------------/
+
+Pair<Node> TermList = Term (void:",":Symbol Term)* ;
+
+Node Term = 
+    <LocationConstant>    LocationConstant
+  / <LocationSpecifier>   LocationSpecifier
+  / <Aggregate>           Aggregate
+  / <Expression>          Expression
+  / <Constant>            Constant
+  / <Identifier>          Identifier 
+  ;
+
+//----------------------------  Aggregate  ----------------------------------/
+
+// generic Aggregate =
+//    AggregateIdentifier void:"<":Symbol LocationSpecifier void:">":Symbol
+//  / AggregateIdentifier void:"<":Symbol Identifier void:">":Symbol;
+
+Node Aggregate =
+    <MinAggregate>    MinAggregate
+  / <MaxAggregate>    MaxAggregate
+  / <CountAggregate>  CountAggregate
+  ;
+
+generic MinAggregate =
+  void:"a_MIN":AggregateName void:"<":Symbol Identifier void:">":Symbol;
+
+generic MaxAggregate =
+  void:"a_MAX":AggregateName void:"<":Symbol Identifier void:">":Symbol;
+
+generic CountAggregate =
+  void:"a_COUNT":AggregateName void:"<":Symbol Identifier void:">":Symbol
+/  void:"a_COUNT":AggregateName void:"<":Symbol void:"*":Symbol void:">":Symbol;
+
+//----------------------------  Location  ----------------------------------/
+
+generic LocationSpecifier = 
+    void:"@":Symbol Identifier;
+

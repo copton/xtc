@@ -1,0 +1,272 @@
+/*
+ * xtc - The eXTensible Compiler
+ * Copyright (C) 2005-2006 New York University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+ * USA.
+ */
+module xtc.xform.XForm;
+
+body {
+  static {
+    add(XFORM_KEYWORDS, new String[] { 
+      "add", "after", "and", "be", "before", "cfor", "differ", 
+      "else", "for", "if", "import", "in", "insert", 
+      "inside_out", "intersect", "let", "null", "or", 
+      "remove", "replace", "return", "then", "to", "union", 
+      "with" });
+  } 
+}
+
+option withLocation, constant, flatten, setOfString(XFORM_KEYWORDS),
+      parser(xtc.xform.XFormParser);
+
+// --------------------------------------------------------- XForm expressions
+
+public generic XForm = Spacing ImportStatement? CompoundExpression EndOfFile ;
+
+generic ImportStatement = 
+  void:"import":Keyword StringLiteral (void:",":Symbol StringLiteral)*
+  ;
+
+
+generic CompoundExpression =
+    <Comma> SingleExpression (void:",":Symbol SingleExpression)+
+  / <Base>  yyValue:SingleExpression
+  ;
+
+transient Node SingleExpression =
+    <Replacement>  ReplacementExpression
+  / <InsertBefore> InsertBeforeExpression
+  / <InsertAfter>  InsertAfterExpression
+  / <Remove>       RemoveExpression 
+  / <Add>          AddExpression
+  / <Let>          LetExpression
+  / <For>          ForExpression
+  / <CFor>         CForExpression
+  / <If>           IfExpression
+  / <NewItem>      NewItemExpression
+  / <Union>        UnionExpression  
+  ;
+
+generic LetExpression = 
+  void:"let":Keyword LetBindingList void:"return":Keyword
+    SingleExpression
+  ;
+
+generic LetBindingList =
+  LetBinding (void:",":Symbol LetBinding)*
+  ;
+
+generic LetBinding = 
+  VariableReference void:"be":Keyword SingleExpression
+  ;
+
+generic ForExpression =
+  void:"for":Keyword IterativeBindingList 
+    (  void:"return":Keyword SingleExpression
+     / ReplacementExpression
+    )
+  ;
+
+generic CForExpression =
+  void:"cfor":Keyword IterativeBindingList 
+    (  void:"return":Keyword SingleExpression
+     / ReplacementExpression
+    )
+  ;
+
+generic IterativeBindingList = 
+  IterativeBinding (void:",":Symbol IterativeBinding)* ;
+
+generic IterativeBinding = 
+  VariableReference void:"in":Keyword SingleExpression ;
+
+generic IfExpression =
+  void:"if":Keyword SingleExpression
+    void:"then":Keyword SingleExpression
+    void:"else":Keyword SingleExpression
+  ;
+
+generic ReplacementExpression = 
+  void:"replace":Keyword SingleExpression 
+    void:"with":Keyword SingleExpression
+  ;
+
+generic InsertAfterExpression =
+ void:"insert":Keyword SingleExpression
+    void:"after":Keyword SingleExpression
+  ;
+
+generic InsertBeforeExpression = 
+  void:"insert":Keyword SingleExpression
+    void:"before":Keyword SingleExpression
+  ;
+
+generic RemoveExpression = 
+  void:"remove":Keyword SingleExpression
+ ;
+
+generic AddExpression = 
+ void:"add":Keyword SingleExpression void:"to":Keyword SingleExpression
+ ;
+
+generic NewItemExpression = 
+    <Null>          Null
+  / <StringLiteral> StringLiteral
+  / <NewNode>       NewNodeExpression
+  ;
+
+generic NewNodeExpression = 
+  Identifier void:"<":Symbol Children void:">":Symbol
+  ;
+
+generic Children = 
+  Child (void:",":Symbol Child)* 
+  ;
+
+generic Child =
+    <Null>           Null
+  / <NewNode>        NewNodeExpression
+  / <Sequence>       SingleExpression
+  / <NoChild>      // No child value
+  ;
+
+generic UnionExpression =
+     UnionExpression void:"union":Keyword IntersectionExpression
+   / DifferExpression
+   / <Base>       yyValue:IntersectionExpression
+  ;
+
+generic DifferExpression =
+    <Differ> LogicalExpression void:"differ":Keyword LogicalExpression
+  ;
+
+generic IntersectionExpression =
+    <Intersect> IntersectionExpression void:"intersect":Keyword LogicalExpression
+  / <Base>      LogicalExpression
+  ;
+
+Node LogicalExpression = 
+    <OrExpr>  OrExpression
+  / <AndExpr> AndExpression
+  / <Base>    PathExpression
+  ;
+
+generic OrExpression =
+  PathExpression (void:"or":Keyword PathExpression)+
+  ;
+
+generic AndExpression =
+  PathExpression (void:"and":Keyword PathExpression)+
+  ;
+
+generic PathExpression =  
+    <AbsolutePath> "/":Symbol RelativePathExpression?
+  / <AllPaths>     ("inside_out":Keyword)? "//":Symbol RelativePathExpression
+  / <Base>         RelativePathExpression  
+  ; 
+
+generic RelativePathExpression =
+    RelativePathExpression ("/":Symbol / "//":Symbol) StepExpression
+  / StepExpression
+  ;
+
+generic StepExpression =
+    <Selection> ItemTest PredicateList
+  / <Reverse>   ReverseStep
+  ;
+
+Node ItemTest =
+    <PrimaryExpression> PrimaryExpression
+  / <Identifier>        Identifier
+  / <Wildcard>          Wildcard
+  ;
+
+generic PredicateList = 
+  Predicate*
+  ;
+
+generic Predicate =
+  void:"[":Symbol (IntegerLiteral/CompoundExpression) void:"]":Symbol
+  ;
+
+Node PrimaryExpression =
+    <ContextItem>       ContextItem
+  / <StringLiteral>     StringLiteral
+  / <VarRef>            VariableReference
+  / <FunctionCall>      FunctionCall
+  / <ParenthesizedExpr> ParenthesizedExpression
+  ;
+
+generic FunctionCall = 
+  Identifier void:"(":Symbol ArgumentList? void:")":Symbol
+  ;
+
+generic ArgumentList =
+  (SingleExpression/IntegerLiteral/StringLiteral) 
+  (void:",":Symbol (SingleExpression/IntegerLiteral/StringLiteral) )*
+  ;
+
+generic ParenthesizedExpression =
+  void:"(":Symbol CompoundExpression? void:")":Symbol
+  ;
+
+generic VariableReference = 
+  void:"$":Symbol w:Word &{ ! contains(XFORM_KEYWORDS, w) } Spacing ;
+
+
+// ----------------------------------------- Identifiers, keywords and symbols
+
+generic Identifier = Word Spacing ;
+String Word       = [a-zA-Z_] [a-zA-Z0-9_]*;
+
+String Keyword    = yyValue:Word &{ contains(XFORM_KEYWORDS, yyValue) } Spacing ;
+
+generic StringLiteral = QuotedString Spacing;
+generic IntegerLiteral  = DecimalLiteral Spacing; 
+String QuotedString      = ["] ( !["\\\n\r] _ )* ["] ;
+String DecimalLiteral    = [0-9] [0-9]* ;
+
+generic ContextItem        = void:".":Symbol ;
+generic ReverseStep        = void:"..":Symbol ;
+generic Null               = void:"null":Keyword ;
+generic Wildcard           = void:"*":Symbol;
+String Symbol = SymbolCharacters Spacing ;
+
+transient String SymbolCharacters = 
+    "//" / ".." 
+  / "." / "(" / ")" / "/" 
+  / "[" / "]" / "#" / "<" 
+  / ">" / "!" / "$" / "," 
+  / "*" / "+" / "="
+  ;
+
+// ------------------------------------------------------------------- Spacing
+
+transient void Spacing =
+  ( Space
+  / Comment
+  / LineTerminator
+  )*
+  ;
+
+transient void Space          = ' ' / '\t' / '\f' ;
+transient void LineTerminator = '\r' '\n' / '\r'  / '\n' ;
+transient void Comment        = '#' ( ![\n\r] _ )* 
+                                  &(LineTerminator / EndOfFile) 
+                                ;
+transient void EndOfFile      = !_ ;
+
+// ===========================================================================

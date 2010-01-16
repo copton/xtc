@@ -1,0 +1,102 @@
+# xtc - The eXTensible Compiler
+# Copyright (C) 2006 New York University
+#
+# This program is free software; you can redistribute it and/or
+# modify it under the terms of the GNU General Public License
+# version 2 as published by the Free Software Foundation.
+#
+# This program is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+# USA.
+
+# kernelize.xform
+# Produces kernelized C source
+# author: Joe Pamer
+
+# Transform while loops.
+
+for
+  $w in //WhileStatement
+    replace $w with
+      let $w_children be $w/* return
+        WhileStatement<
+          IntegerConstant<"1">,
+          CompoundStatement<
+            null,
+            IfElseStatement<
+            $w_children [1],
+            $w_children [2],
+            BreakStatement<>
+          >
+        >
+      >
+, # End of while loop transformation.
+
+# Transform do loops.
+for $d in //DoStatement
+  replace $d with
+    let $d_children be $d/* return
+      WhileStatement<
+        IntegerConstant<"1"> ,
+        CompoundStatement<
+          null,
+          $d_children [1],
+          IfElseStatement<
+            $d_children [2],
+            ContinueStatement<> ,
+            BreakStatement<>
+          >
+        >
+      >
+, # End of do loop transformation.
+
+# Transform for loops.
+for $f in //ForStatement return
+  replace $f with
+    let $f_children be $f/* return
+      CompoundStatement<
+        null,
+        if isNull($f_children [1])
+          then $f_children [1]
+          else ExpressionStatement<$f_children [1]> ,
+        WhileStatement<
+          IntegerConstant<"1">,
+          IfElseStatement<
+            if isNull($f_children [2])
+              then IntegerConstant<"1">
+              else $f_children [2] ,
+            CompoundStatement<
+              null,
+              $f_children [4],
+              if isNull($f_children [3])
+                then $f_children [3]
+                else ExpressionStatement<$f_children [3]>> ,
+            BreakStatement<>
+          >
+        >
+      >
+, # End of for loop transformation.
+
+# Flatten nested declarations.
+for $dec in //Declaration 
+  replace $dec with
+    let $dec_children be $dec / *, $idl be $dec_children [3]
+    return
+      if isNull($idl)
+        then $dec
+        else 
+          for $id in $idl/*
+            return
+              Declaration<
+                $dec_children [1],
+                $dec_children [2],
+                InitializedDeclaratorList<$id>
+              >
+# End of Query.
+

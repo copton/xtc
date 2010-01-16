@@ -1,0 +1,60 @@
+/*
+ * xtc - The eXTensible Compiler
+ * Copyright (C) 2007 New York University
+ *
+ * This program is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU General Public License
+ * version 2 as published by the Free Software Foundation.
+ *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, 51 Franklin Street, Fifth Floor, Boston, MA 02110-1301,
+ * USA.
+ */
+
+/**
+ * Grammar for the Overlog language.
+ *
+ * @author Robert Soule
+ * @version $Revision: 1.2 $
+ * 
+ */
+module xtc.lang.overlog.Reserved(Spacing);
+
+import Spacing;
+
+body {
+  static {
+    add(OVERLOG_KEYWORDS, new String[] {
+      "count",      
+      "delete",      
+      "false", 
+      "id",         
+      "in",     
+      "infinity",
+      "keys",       
+      "materialize", 
+      "max",        
+      "min",    
+      "namespace",
+      "now",        
+      "null",        
+      "period",     
+      "Query",  
+      "stage",  
+      "trace",      
+      "traceTable",  
+      "true",       
+      "watch",       
+      "watchmod"
+    });
+  }
+}
+
+option setOfString(OVERLOG_KEYWORDS);
+
